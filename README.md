@@ -126,9 +126,13 @@ I'll go over this in detail:
 
 `while (idx < *nums) {` A loop that runs as long as `idx` is smaller than the size of the array.
 The size of an array is retrieved by de-referencing the pointer: `*nums`
+
 `nums[idx] = iint();` read an integer and store it at the position `idx` of the array. Indices start at 0.
+
 `idx = idx + 1;` increments `idx`
+
 `idx = *nums - 1;` sets `idx` to the array length minus one.
+
 `while (idx >= 0) { ... }` is another loop that outputs the integers and decrements `idx`.
 
 Ok time for the last example:
