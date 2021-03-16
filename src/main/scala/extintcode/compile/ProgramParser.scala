@@ -79,9 +79,9 @@ object ProgramParser extends ExtendedParsers {
   def array_variable_update: Parser[LangStatement] = identifier ~ "[" ~ expression ~ "]" ~ "=" ~ expression ^^ { case array ~ _ ~ idx ~ _ ~ _ ~ value => new ArrayUpdate(new VariableAccess(array), idx, value) }
   def array_paren_update: Parser[LangStatement] = "(" ~> expression ~ ")" ~ "[" ~ expression ~ "]" ~ "=" ~ expression ^^ { case array ~ _ ~ _ ~ idx ~ _ ~ _ ~ value => new ArrayUpdate(array, idx, value) }
   
-  def control_if: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ "{" ~ rep(statement) <~ "}" ^^ { case condition ~ _  ~ _ ~ ifTrue => new ControlIf(condition, ifTrue, Nil) }
-  def control_if_else: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ "{" ~ rep(statement) ~ "}" ~ "else" ~ "{" ~ rep(statement) <~ "}" ^^ { case condition ~ _  ~ _ ~ ifTrue ~ _ ~ _ ~ _ ~ ifFalse => new ControlIf(condition, ifTrue, ifFalse) }
-  def control_while: Parser[LangStatement] = "while" ~> "(" ~> expression ~ ")" ~ "{" ~ rep(statement) <~ "}" ^^ { case condition ~ _  ~ _ ~ statements => new ControlWhile(condition, statements) }
+  def control_if: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~  _ ~ ifTrue => new ControlIf(condition, List(ifTrue), Nil) }
+  def control_if_else: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ~ "else" ~ statement ^^ { case condition ~ _ ~ ifTrue ~ _ ~ ifFalse => new ControlIf(condition, List(ifTrue), List(ifFalse)) }
+  def control_while: Parser[LangStatement] = "while" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~ _  ~ statements => new ControlWhile(condition, List(statements)) }
   def control_block: Parser[LangStatement] = "{" ~> rep(statement) <~ "}" ^^ (x => new CodeBlock(x))
   def control_break: Parser[LangStatement] = "break" ^^ (_ => new ControlJumpStatement(ControlJumpType.BREAK))
   def control_continue: Parser[LangStatement] = "continue" ^^ (_ => new ControlJumpStatement(ControlJumpType.CONTINUE))

@@ -19,9 +19,22 @@ object Operators {
   val LOGICAL_AND: Operator[LangExpression] = new OperatorIml("&&", Priority.LOGICAL_AND, new OperatorAnd(_, _))
   val LOGICAL_OR: Operator[LangExpression] = new OperatorIml("||", Priority.LOGICAL_OR, new OperatorOr(_, _))
   
-  val OPS: Set[Operator[LangExpression]] = Set(
-    POWER, MULTIPLICATION, DIVISION, MODULUS, ADDITION, SUBTRACTION, LOWER, GREATER, LOWER_EQUAL, GREATER_EQUAL,
-    EQUALS, NOT_EQUALS, LOGICAL_AND, LOGICAL_OR
+  // Operators with names which are part of other operators must be located after those
+  val OPS: List[Operator[LangExpression]] = List(
+    POWER,
+    MULTIPLICATION,
+    DIVISION,
+    MODULUS,
+    ADDITION,
+    SUBTRACTION,
+    LOWER_EQUAL,
+    GREATER_EQUAL,
+    LOWER,
+    GREATER,
+    EQUALS,
+    NOT_EQUALS,
+    LOGICAL_AND,
+    LOGICAL_OR
   )
   
   class OperatorIml(name: String, priority: Priority, join: (LangExpression, LangExpression) => LangExpression) extends Operator[LangExpression](name, priority) {

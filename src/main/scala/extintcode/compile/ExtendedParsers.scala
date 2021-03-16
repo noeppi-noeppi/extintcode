@@ -4,7 +4,7 @@ import extintcode.util.CommonParsers
 
 class ExtendedParsers extends CommonParsers {
 
-  def op1sep[T](expression: Parser[T], operators: Set[Operator[T]]): Parser[T] = {
+  def op1sep[T](expression: Parser[T], operators: List[Operator[T]]): Parser[T] = {
     
     def isOp(priority: Priority)(elem: Either[T, Operator[T]]): Boolean = elem match {
       case Right(x) => x.priority == priority

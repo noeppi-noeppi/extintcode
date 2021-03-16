@@ -1,0 +1,133 @@
+$V 2.0
+
+section .text
+        jmp     &end
+:#?max(..)
+        lt      GLOBAL1, PARAM1, PARAM2
+        jz      &max_param1, GLOBAL1
+        mov     RETURN, PARAM2
+        jmp     BACKJUMP
+:max_param1
+        mov     RETURN, PARAM1
+        jmp     BACKJUMP
+
+:#?min(..)
+        lt      GLOBAL1, PARAM1, PARAM2
+        jz      &min_param2, GLOBAL1
+        mov     RETURN, PARAM1
+        jmp     BACKJUMP
+:min_param2
+        mov     RETURN, PARAM2
+        jmp     BACKJUMP
+        
+:#?fib(.)
+        lt      GLOBAL1, PARAM1, 3
+        jz      &fib_start_loop, GLOBAL1
+        mov     RETURN, 1
+        jmp     BACKJUMP
+:fib_start_loop
+        mov     GLOBAL1, 1
+        mov     GLOBAL2, 1
+        add     GLOBAL3, PARAM1, -2
+:fib_loop
+        mov     GLOBAL4, GLOBAL1
+        add     GLOBAL1, GLOBAL1, GLOBAL2
+        mov     GLOBAL2, GLOBAL4
+        add     GLOBAL3, GLOBAL3, -1
+        jnz     &fib_loop, GLOBAL3
+        mov     RETURN, GLOBAL1
+        jmp     BACKJUMP
+        
+:#?abs(.)
+        lt      GLOBAL1, PARAM1, 0
+        mul     GLOBAL1, GLOBAL1, -2
+        add     GLOBAL1, GLOBAL1, 1
+        mul     RETURN, GLOBAL1, PARAM1
+        jmp     BACKJUMP
+        
+:#?clamp(...)
+        lt      GLOBAL1, PARAM3, PARAM2     ; Swap param 2 and 3 so minimum is always param2
+        jz      &clamp_after_swap, GLOBAL1
+        mov     GLOBAL1, PARAM2
+        mov     PARAM2, PARAM3
+        mov     PARAM3, GLOBAL1
+:clamp_after_swap
+        lt      GLOBAL1, PARAM1, PARAM2
+        jz      &clamp_no_min, GLOBAL1
+        mov     RETURN, PARAM2
+        jmp     BACKJUMP
+:clamp_no_min
+        lt      GLOBAL1, PARAM3, PARAM1
+        jz      &clamp_no_max, GLOBAL1
+        mov     RETURN, PARAM3
+        jmp     BACKJUMP
+:clamp_no_max
+        mov     RETURN, PARAM1
+        jmp     BACKJUMP
+        
+:#?gcd(..)
+        lt      GLOBAL1, PARAM1, 0          ; Store sign of param1 in global1 and sign of param2 in global2
+        lt      GLOBAL2, PARAM2, 0
+        mul     GLOBAL1, GLOBAL1, -2
+        mul     GLOBAL2, GLOBAL2, -2
+        add     GLOBAL1, GLOBAL1, 1
+        add     GLOBAL2, GLOBAL2, 1         ; global1 and global2 are now either -1 or 1
+        mul     GLOBAL1, GLOBAL1, PARAM1    ; Store abs of param1 in global1
+        mul     GLOBAL2, GLOBAL2, PARAM2    ; Store abs of param2 in global2
+:gcd_loop
+        jnz     &gcd_anz, GLOBAL1
+        mov     RETURN, GLOBAL2
+        jmp     BACKJUMP
+:gcd_anz
+        jnz     &gcd_bnz, GLOBAL2
+        mov     RETURN, GLOBAL1
+        jmp     BACKJUMP
+:gcd_bnz
+        eq      GLOBAL3, GLOBAL1, GLOBAL2
+        jz      &gcd_neq, GLOBAL3
+        mov     RETURN, GLOBAL1
+        jmp     BACKJUMP
+:gcd_neq
+        lt      GLOBAL3, GLOBAL1, GLOBAL2
+        jnz     &a_lt_b, GLOBAL3
+        mul     GLOBAL3, GLOBAL2, -1
+        add     GLOBAL1, GLOBAL1, GLOBAL3
+        jmp     &gcd_loop
+:a_lt_b
+        mul     GLOBAL3, GLOBAL1, -1
+        add     GLOBAL2, GLOBAL2, GLOBAL3
+        jmp     &gcd_loop
+
+:#?sgn(.)
+        jnz     &sgn_nn, PARAM1
+        mov     RETURN, 0
+        jmp     BACKJUMP
+:sgn_nn
+        lt      GLOBAL1, PARAM1, 0
+        jnz     &sgn_neg, GLOBAL1
+        mov     RETURN, 1
+        jmp     BACKJUMP
+:sgn_neg
+        mov     RETURN, -1
+        jmp     BACKJUMP
+        
+:#?faculty(.)
+        jnz     &faculty_nn, PARAM1
+        mov     RETURN, 1
+        jmp     BACKJUMP
+:faculty_nn
+        lt      GLOBAL1, PARAM1, 0
+        jz      &faculty_pos, GLOBAL1
+        mov     RETURN, 0
+        jmp     BACKJUMP
+:faculty_pos
+        mov     GLOBAL1, PARAM1
+        mov     GLOBAL2, 1
+:faculty_loop
+        mul     GLOBAL2, GLOBAL2, GLOBAL1
+        add     GLOBAL1, GLOBAL1, -1
+        jnz     &faculty_loop, GLOBAL1
+        mov     RETURN, GLOBAL2
+        jmp     BACKJUMP
+        
+:end

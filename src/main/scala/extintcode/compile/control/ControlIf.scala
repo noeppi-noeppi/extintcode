@@ -9,7 +9,7 @@ class ControlIf(condition: LangExpression, ifTrue: List[LangStatement], ifFalse:
 
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     if (ifTrue.isEmpty && ifFalse.isEmpty) println("Warning: pointless if condition: Both branches are empty.")
-    else if (ifFalse.isEmpty) println("Warning: If condition with only else branch. You should flip the condition.")
+    else if (ifTrue.isEmpty) println("Warning: If condition with only else branch. You should flip the condition.")
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
     runtime.startExpressionSection()
