@@ -15,10 +15,15 @@ class ExtendedParsers extends CommonParsers {
       .map(op => op.name ^^ (_ => op))
       .reduce((op1, op2) => op1 | op2)
     
+    // Luckily this works as the aargument in `|` is by name
+    var parser: Parser[T] = null
+    
+    val parenExpression = expression | ("(" ~> parser <~ ")")
+    
     val operatorSeparatedListParser: Parser[List[Either[T, Operator[T]]]] =
-      ((expression ^^ (x => Left(x))) ~ rep(operatorParser ~ expression ^^ { case op ~ expr => List(Right(op), Left(expr)) })) ^^ { case x ~ y => x::y.flatten }
+      ((parenExpression ^^ (x => Left(x))) ~ rep(operatorParser ~ parenExpression ^^ { case op ~ expr => List(Right(op), Left(expr)) })) ^^ { case x ~ y => x::y.flatten }
 
-    operatorSeparatedListParser ^^ (list => {
+    parser = operatorSeparatedListParser ^^ (list => {
       var join = list
       Priority.values().foreach(priority => {
         val check = isOp(priority) _
@@ -33,5 +38,6 @@ class ExtendedParsers extends CommonParsers {
       if (join.isEmpty || join.size > 1) throw new IllegalStateException("Incorrect operator chaining: Joined expression: " + join)
       join.head match { case Left(x) => x; case _ => throw new IllegalStateException("Incorrect operator chaining: Joined expression: " + join) }
     })
+    parser
   }
 }

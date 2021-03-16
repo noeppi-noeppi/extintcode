@@ -30,8 +30,7 @@ object ProgramParser extends ExtendedParsers {
   def raw_statement: Parser[LangStatement] = name_import | implicit_import | function_statement | return_statement | control_break | control_continue | control_next | variable_declaration | array_paren_update | array_variable_update | variable_update
   def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_block
   
-  def expression: Parser[LangExpression] = op1sep(np_expression, Operators.OPS)
-  def np_expression: Parser[LangExpression] = raw_expression | ("(" ~> np_expression <~ ")")
+  def expression: Parser[LangExpression] = op1sep(raw_expression, Operators.OPS)
   def raw_expression: Parser[LangExpression] = literal | function_expression | cast_direct | cast_pointer | array_by_size | create_pointer | logical_not | unary_negation | array_paren_access | variable_deref | array_variable_access | variable_access
   
   def keyword: Parser[String] = "import" | "implicit" | "true" | "false" | "null" | "array" | "export" | "let" | "const" | "as" | "def" | "return" | "break" | "continue" | "next" | "if" | "else" | "while"
