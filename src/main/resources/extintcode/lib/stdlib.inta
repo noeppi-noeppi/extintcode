@@ -1,0 +1,235 @@
+$V 2.0
+
+section .text
+        jmp     &end
+        
+:#?div(..)
+        jnz     &div_nz2, PARAM2            ; Divide by zero should crash. We cause a null instruction then.
+        raw     0
+:div_nz2
+        jnz     &div_nz1, PARAM1            ; Return 0 if first parameter is 0
+        mov     RETURN, 0
+        jmp     BACKJUMP
+:div_nz1
+        lt      GLOBAL1, PARAM1, 0          ; Store sign of param1 in global1 and sign of param2 in global2
+        lt      GLOBAL2, PARAM2, 0
+        mul     GLOBAL1, GLOBAL1, -2
+        mul     GLOBAL2, GLOBAL2, -2
+        add     GLOBAL1, GLOBAL1, 1
+        add     GLOBAL2, GLOBAL2, 1         ; global1 and global2 are now either -1 or 1
+        mul     GLOBAL3, GLOBAL1, GLOBAL2   ; Store sign of result in global3
+        mul     GLOBAL1, GLOBAL1, PARAM1    ; Store abs of param1 in global1
+        mul     GLOBAL2, GLOBAL2, PARAM2    ; Store abs of param2 in global2
+                                            ; global4 is the value that is left to be reached of the solution
+                                            ; global5 is the value that will be added to global4 next step
+                                            ; global6 is a temporary value to check whether value5 is big enough
+                                            ; global7 is the current result
+                                            ; global8 is the value that will be added to global7 next step
+        mov     GLOBAL4, GLOBAL1
+        mov     GLOBAL7, 0
+:div_step
+        mov     GLOBAL5, GLOBAL2
+        mov     GLOBAL8, 1
+        mul     GLOBAL6, GLOBAL5, 2
+        lt      GLOBAL6, GLOBAL4, GLOBAL6
+        jnz     &div_step_end, GLOBAL6
+        mul     GLOBAL5, GLOBAL5, 2
+        mul     GLOBAL8, GLOBAL8, 2
+:div_step_end
+        mul     GLOBAL5, GLOBAL5, -1
+        add     GLOBAL4, GLOBAL4, GLOBAL5
+        add     GLOBAL7, GLOBAL7, GLOBAL8
+        mul     GLOBAL6, GLOBAL2, -1
+        add     GLOBAL6, GLOBAL4, GLOBAL6
+        lt      GLOBAL6, GLOBAL6, 0
+        jz      &div_step, GLOBAL6
+        mul     RETURN, GLOBAL7, GLOBAL3
+        jmp     BACKJUMP
+        
+:#?mod(..)
+        jnz     &mod_nz2, PARAM2            ; Divide by zero should crash. We cause a null instruction then.
+        raw     0
+:mod_nz2
+        jnz     &mod_nz1, PARAM1            ; Return 0 if first parameter is 0
+        mov     RETURN, 0
+        jmp     BACKJUMP
+:mod_nz1
+        lt      GLOBAL1, PARAM1, 0          ; Store sign of param1 in global1 and sign of param2 in global2
+        lt      GLOBAL2, PARAM2, 0
+        mul     GLOBAL1, GLOBAL1, -2
+        mul     GLOBAL2, GLOBAL2, -2
+        add     GLOBAL1, GLOBAL1, 1
+        add     GLOBAL2, GLOBAL2, 1         ; global1 and global2 are now either -1 or 1
+        mov     GLOBAL3, GLOBAL1            ; Store sign of result in global3 (for mod the sign is determined by
+                                            ;the sign of param1)
+        mul     GLOBAL1, GLOBAL1, PARAM1    ; Store abs of param1 in global1
+        mul     GLOBAL2, GLOBAL2, PARAM2    ; Store abs of param2 in global2
+                                            ; Works similar to div
+        mov     GLOBAL4, GLOBAL1
+:mod_step
+        mov     GLOBAL5, GLOBAL2
+        mul     GLOBAL6, GLOBAL5, 2
+        lt      GLOBAL6, GLOBAL4, GLOBAL6
+        jnz     &mod_step_end, GLOBAL6
+        mul     GLOBAL5, GLOBAL5, 2
+:mod_step_end
+        mul     GLOBAL5, GLOBAL5, -1
+        add     GLOBAL4, GLOBAL4, GLOBAL5
+        mul     GLOBAL6, GLOBAL2, -1
+        add     GLOBAL6, GLOBAL4, GLOBAL6
+        lt      GLOBAL6, GLOBAL6, 0
+        jz      &mod_step, GLOBAL6
+        mul     RETURN, GLOBAL4, GLOBAL3
+        jmp     BACKJUMP
+
+:#?iint()
+        mov     RETURN, 0
+        mov     GLOBAL3, 1                  ; global3 is the sign
+:iint_nextchar
+        inp     GLOBAL1
+        eq      GLOBAL2, GLOBAL1, 45
+        jnz      &iint_chnage_sign, GLOBAL2
+        eq      GLOBAL2, GLOBAL1, 10
+        jz      &iint_append, GLOBAL2
+        mul     RETURN, RETURN, GLOBAL3
+        jmp     BACKJUMP
+:iint_append
+        mul     RETURN, RETURN, 10
+        add     GLOBAL1, GLOBAL1, -48
+        add     RETURN, RETURN, GLOBAL1
+        jmp     &iint_nextchar
+:iint_chnage_sign
+        mul     GLOBAL3, GLOBAL3, -1
+        jmp     &iint_nextchar
+        
+:#?oint(.)
+        jnz     &oint_nz, PARAM1
+        outp    48
+        outp    10
+        mov     RETURN, 0
+        jmp     BACKJUMP
+:oint_nz
+        lt      GLOBAL1, PARAM1, 0          ; Store sign in global1
+        mul     GLOBAL1, GLOBAL1, -2
+        add     GLOBAL1, GLOBAL1, 1
+        eq      GLOBAL2, -1, GLOBAL1
+        jz      &oint_positive, GLOBAL2
+        outp    45
+:oint_positive
+        mul     GLOBAL1, GLOBAL1, PARAM1
+        add     GLOBAL1, GLOBAL1, 1
+        mov     GLOBAL2, 0                  ; global2 stores the amount of digits
+        mov     GLOBAL3, 1
+        mov     GLOBAL8, 0
+:oint_count_digit
+        add     GLOBAL2, GLOBAL2, 1
+        mul     GLOBAL3, GLOBAL3, 10
+        lt      GLOBAL4, GLOBAL1, GLOBAL3
+        jz      &oint_count_digit, GLOBAL4
+:oint_print_digit
+        mov     GLOBAL3, 1
+        add     GLOBAL4, GLOBAL2, -1
+:oint_det_base
+        jz      &oint_base, GLOBAL4
+        add     GLOBAL4, GLOBAL4, -1
+        mul     GLOBAL3, GLOBAL3, 10
+        jmp     &oint_det_base
+:oint_base
+        mov     GLOBAL4, 0
+:oint_det_digit
+        mul     GLOBAL5, GLOBAL4, GLOBAL3
+        lt      GLOBAL5, GLOBAL5, GLOBAL1
+        jz      &oint_outp, GLOBAL5
+        add     GLOBAL4, GLOBAL4, 1
+        jmp     &oint_det_digit
+:oint_outp
+        add     GLOBAL4, GLOBAL4, -1
+        mul     GLOBAL6, GLOBAL4, GLOBAL3
+        mul     GLOBAL6, GLOBAL6, -1
+        add     GLOBAL1, GLOBAL1, GLOBAL6
+        add     GLOBAL6, GLOBAL4, 48
+        add     GLOBAL8, GLOBAL8, GLOBAL4
+        jz      &oint_skip_outp, GLOBAL8
+        outp    GLOBAL6
+:oint_skip_outp
+        mov     GLOBAL8, 1
+        add     GLOBAL2, GLOBAL2, -1
+        jnz     &oint_print_digit, GLOBAL2
+        outp    10
+        mov     RETURN, 0
+        jmp     BACKJUMP
+        
+:#?&istr()
+        mov     GLOBAL1, 0                  ; string length
+:istr_input_char
+        inp     GLOBAL3
+        eq      GLOBAL4, GLOBAL3, 10
+        jnz     &istr_end_input, GLOBAL4
+        add     GLOBAL1, GLOBAL1, 1
+        add     GLOBAL5, NEXTDYN, GLOBAL1
+        store   GLOBAL5, GLOBAL3
+        jmp     &istr_input_char
+:istr_end_input
+        store   NEXTDYN, GLOBAL1
+        mov     RETURN, NEXTDYN
+        add     NEXTDYN, NEXTDYN, GLOBAL1
+        add     NEXTDYN, NEXTDYN, 1
+        jmp     BACKJUMP
+        
+:func_ostr#?ostr(&)                         ; ostr is called by obool. Check when signature or purity is changed.
+        load    GLOBAL1, PARAM1             ; string length
+        mov     GLOBAL2, 1
+:ostr_output_char
+        lt      GLOBAL3, GLOBAL1, GLOBAL2
+        jnz      &ostr_end, GLOBAL3
+        add     GLOBAL5, PARAM1, GLOBAL2
+        load    GLOBAL4, GLOBAL5
+        outp    GLOBAL4
+        add     GLOBAL2, GLOBAL2, 1
+        jmp     &ostr_output_char
+:ostr_end
+        outp    10
+        mov     RETURN, 0
+        jmp     BACKJUMP
+        
+:#?pow(..)
+        lt      GLOBAL1, PARAM2, 0
+        jz      &pow_nonnegative, GLOBAL1
+        mov     RETURN, 0                   ; Negative exponent makes it return 0
+        jmp     BACKJUMP
+:pow_nonnegative
+        jnz     &pow_nonnull, PARAM2
+        mov     RETURN, 1                   ; Zero exponent makes it return 1
+        jmp     BACKJUMP
+:pow_nonnull
+        jnz     &pow_start, PARAM1
+        mov     RETURN, 0                   ; Zero base makes it return 0
+        jmp     BACKJUMP
+:pow_start
+        mov     GLOBAL1, PARAM2
+        mov     GLOBAL2, 1
+:pow_step
+        mul     GLOBAL2, GLOBAL2, PARAM1
+        add     GLOBAL1, GLOBAL1, -1
+        jnz     &pow_step, GLOBAL1
+        mov     RETURN, GLOBAL2
+        jmp     BACKJUMP
+        
+:#obool(.)                                  ; Function is not pure as we call ostr here
+        mov     [*0], BACKJUMP              ; Move BACKJUMP on the stack.
+                                            ; As ostr in pure, we need no push here
+        jz      &obool_false, PARAM1
+        mov     PARAM1, !bool_true
+        jmp     &obool_outp
+:obool_false
+        mov     PARAM1, !bool_false
+:obool_outp
+        call    &func_ostr
+                                              ; No mov for RETURN as RETURN is already set by ostr. (Always 0)
+        jmp     [*0]
+        
+:end
+
+section .data
+bool_true       "true"
+bool_false      "false"
