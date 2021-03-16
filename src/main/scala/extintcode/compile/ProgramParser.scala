@@ -3,14 +3,15 @@ package extintcode.compile
 import extintcode.compile.array.{ArrayAccess, ArrayBySize, ArrayUpdate}
 import extintcode.compile.control.{CodeBlock, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
 import extintcode.compile.function.{FunctionCallExpression, FunctionCallStatement, FunctionDefinition, ReturnStatement}
-import extintcode.compile.literal.{LiteralArray, LiteralInt, LiteralNull, LiteralString}
+import extintcode.compile.literal.{LiteralArray, LiteralChar, LiteralInt, LiteralNull, LiteralString}
 import extintcode.compile.meta.{ImportStatement, TypeCast}
 import extintcode.compile.operator.Operators
 import extintcode.compile.unary.{LogicalNot, Negation}
 import extintcode.compile.variable.{CreatePointer, VariableAccess, VariableDeclaration, VariableDeref, VariableUpdate}
 import extintcode.util.InvalidFileException
+import org.apache.commons.io.input.SequenceReader
 
-import java.io.Reader
+import java.io.{Reader, StringReader}
 import scala.util.matching.Regex
 
 object ProgramParser extends ExtendedParsers {
@@ -18,10 +19,14 @@ object ProgramParser extends ExtendedParsers {
   val MODULE_NAME: Regex = "[A-Za-z][A-Za-z_0-9]*".r
   val IMPORT_NAME: Regex = "[A-Za-z][A-Za-z_0-9]*(\\.(\\*|[A-Za-z][A-Za-z_0-9]*))?".r
   
-  def parseProgram(in: Reader): List[Either[LangStatement, FunctionDefinition]] = parseAll(program, in) match {
+  // Additional line breaks are required for comments to match.
+  def parseProgram(in: Reader): List[Either[LangStatement, FunctionDefinition]] = parseAll(program, new SequenceReader(in, new StringReader("\n\n"))) match {
     case Success(x, _) => x
     case x: NoSuccess => System.err.println(x); throw new InvalidFileException("The parser returned an error")
   }
+
+  // Comments
+  override protected val whiteSpace: Regex = "\\s*((#.*\r?\n)?\\s*)*".r
   
   def program: Parser[List[Either[LangStatement, FunctionDefinition]]] = rep(lang)
   def lang: Parser[Either[LangStatement, FunctionDefinition]] = (statement ^^ (x => Left(x))) | (function_definition ^^ (x => Right(x)))
@@ -41,8 +46,9 @@ object ProgramParser extends ExtendedParsers {
   def name_import: Parser[LangStatement] = "import" ~> IMPORT_NAME ^^ (x => new ImportStatement(x, false))
   def implicit_import: Parser[LangStatement] = "implicit" ~> IMPORT_NAME ^^ (x => new ImportStatement(x, true))
   
-  def literal: Parser[LangExpression] = literal_int | literal_true | literal_false | literal_null | literal_array | literal_string
+  def literal: Parser[LangExpression] = literal_int | literal_true | literal_false | literal_null | literal_array | literal_string | literal_char
   def literal_int: Parser[LangExpression] = wholeNumber ^^ (x => new LiteralInt(x.toLong))
+  def literal_char: Parser[LangExpression] = escapedStringLiteralSingleQuotes ^^ (x => new LiteralChar(x))
   def literal_true: Parser[LangExpression] = "true" ^^ (_ => new LiteralInt(1))
   def literal_false: Parser[LangExpression] = "false" ^^ (_ => new LiteralInt(0))
   def literal_null: Parser[LangExpression] = "null" ^^ (_ => LiteralNull)
