@@ -1,11 +1,11 @@
 package extintcode.compile
 
 import extintcode.compile.array.{ArrayAccess, ArrayBySize, ArrayUpdate}
-import extintcode.compile.control.{CodeBlock, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
+import extintcode.compile.control.{CodeBlock, ControlFor, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
 import extintcode.compile.function.{FunctionCallExpression, FunctionCallStatement, FunctionDefinition, ReturnStatement}
 import extintcode.compile.literal.{LiteralArray, LiteralChar, LiteralInt, LiteralNull, LiteralString}
 import extintcode.compile.meta.{ImportStatement, TypeCast}
-import extintcode.compile.operator.Operators
+import extintcode.compile.operator.{OperatorAdd, OperatorDiv, OperatorMul, OperatorSub, Operators}
 import extintcode.compile.unary.{LogicalNot, Negation}
 import extintcode.compile.variable.{CreatePointer, VariableAccess, VariableDeclaration, VariableDeref, VariableUpdate}
 import extintcode.util.InvalidFileException
@@ -32,8 +32,8 @@ object ProgramParser extends ExtendedParsers {
   def lang: Parser[Either[LangStatement, FunctionDefinition]] = (statement ^^ (x => Left(x))) | (function_definition ^^ (x => Right(x)))
   
   def statement: Parser[LangStatement] = (raw_statement <~ ";") | control
-  def raw_statement: Parser[LangStatement] = name_import | implicit_import | function_statement | return_statement | control_break | control_continue | control_next | variable_declaration | array_paren_update | array_variable_update | variable_update
-  def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_block
+  def raw_statement: Parser[LangStatement] = name_import | implicit_import | function_statement | return_statement | control_break | control_continue | control_next | variable_declaration | array_paren_update | array_variable_update | variable_update | assign_add | assign_sub | assign_mul | assign_div
+  def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_for | control_block
   
   def expression: Parser[LangExpression] = op1sep(raw_expression, Operators.OPS)
   def raw_expression: Parser[LangExpression] = literal | function_expression | cast_direct | cast_pointer | array_by_size | create_pointer | logical_not | unary_negation | array_paren_access | variable_deref | array_variable_access | variable_access
@@ -82,8 +82,14 @@ object ProgramParser extends ExtendedParsers {
   def control_if: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~  _ ~ ifTrue => new ControlIf(condition, List(ifTrue), Nil) }
   def control_if_else: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ~ "else" ~ statement ^^ { case condition ~ _ ~ ifTrue ~ _ ~ ifFalse => new ControlIf(condition, List(ifTrue), List(ifFalse)) }
   def control_while: Parser[LangStatement] = "while" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~ _  ~ statements => new ControlWhile(condition, List(statements)) }
+  def control_for: Parser[LangStatement] = "for" ~> "(" ~> opt(raw_statement) ~ ";" ~ expression ~ ";" ~ opt(raw_statement) ~ ")" ~ statement ^^ { case init ~ _ ~ condition ~ _ ~ last ~ _  ~ statements => new ControlFor(init, condition, last, List(statements)) }
   def control_block: Parser[LangStatement] = "{" ~> rep(statement) <~ "}" ^^ (x => new CodeBlock(x))
   def control_break: Parser[LangStatement] = "break" ^^ (_ => new ControlJumpStatement(ControlJumpType.BREAK))
   def control_continue: Parser[LangStatement] = "continue" ^^ (_ => new ControlJumpStatement(ControlJumpType.CONTINUE))
   def control_next: Parser[LangStatement] = "next" ^^ (_ => new ControlJumpStatement(ControlJumpType.NEXT))
+  
+  def assign_add: Parser[LangStatement] = identifier ~ "+=" ~ expression ^^ { case name ~ _ ~ value => new VariableUpdate(name, new OperatorAdd(new VariableAccess(name), value)) }
+  def assign_sub: Parser[LangStatement] = identifier ~ "-=" ~ expression ^^ { case name ~ _ ~ value => new VariableUpdate(name, new OperatorSub(new VariableAccess(name), value)) }
+  def assign_mul: Parser[LangStatement] = identifier ~ "*=" ~ expression ^^ { case name ~ _ ~ value => new VariableUpdate(name, new OperatorMul(new VariableAccess(name), value)) }
+  def assign_div: Parser[LangStatement] = identifier ~ "/=" ~ expression ^^ { case name ~ _ ~ value => new VariableUpdate(name, new OperatorDiv(new VariableAccess(name), value)) }
 }

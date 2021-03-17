@@ -78,7 +78,7 @@ object IntCodeCompiler {
       throw new IllegalStateException("Nothing to comile")
     }
     
-    runtime.pushScope()
+    runtime.pushInitialScope()
     if (statements.nonEmpty) {
       println("Compiling static code")
       for (statement <- statements) {

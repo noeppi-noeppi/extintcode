@@ -150,7 +150,7 @@ object IntCodeInterpreter {
   }
   
   def create(reader: BufferedReader, flags: Long): IntCodeInterpreter = {
-    val ints = reader.lines().toArray.map(_.toString).flatMap(_.split(",")).map(_.trim).map(_.toLong)
+    val ints = reader.lines().toArray.map(_.toString).filter(!_.isBlank).flatMap(_.split(",")).map(_.trim).map(_.toLong)
     new IntCodeInterpreter(new Memory(ListBuffer.from(ints)), flags)
   }
   

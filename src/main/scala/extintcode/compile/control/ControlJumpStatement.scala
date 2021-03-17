@@ -6,10 +6,14 @@ import extintcode.compile.{CompilerRuntime, ImportTable, LangStatement}
 class ControlJumpStatement(val statement: ControlJumpType) extends LangStatement {
   
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
-    statement match {
-      case ControlJumpType.BREAK => (List(StmtJmp(runtime.getControl.break)), Nil)
-      case ControlJumpType.CONTINUE => (List(StmtJmp(runtime.getControl.continue)), Nil)
-      case ControlJumpType.NEXT => (List(StmtJmp(runtime.getControl.next)), Nil)
+    val either = statement match {
+      case ControlJumpType.BREAK => runtime.getControl.break
+      case ControlJumpType.CONTINUE => runtime.getControl.continue
+      case ControlJumpType.NEXT => runtime.getControl.next
+    }
+    either match {
+      case Left(v) => (List(StmtJmp(v)), Nil)
+      case Right(e) => throw new IllegalStateException(e)
     }
   }
 }

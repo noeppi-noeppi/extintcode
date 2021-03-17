@@ -11,7 +11,7 @@ class CompilerRuntime {
   private val dataEntries = mutable.Map[String, Int]()
   
   private var variablesStackSize = -1
-  private val variableStack = mutable.Stack[mutable.Map[String, Variable]]()
+  private val variableStack = mutable.Stack[(mutable.Map[String, Variable], Boolean)]()
   private val variableData = ListBuffer[AssemblyData]()
   private val allVariables = mutable.Set[Variable]()
   private var stackResultType: Boolean = false
@@ -66,6 +66,10 @@ class CompilerRuntime {
     }
     val scope = currentScope()
     if (scope.contains(name)) throw new IllegalStateException("Variable " + name + " is already defined in the scope.")
+    // Take all layers of teh stack including the first one that allows for redefinitions
+    for ((parent, _) <- variableStack.take(variableStack.indexWhere(_._2) + 1)) {
+      if (parent.contains(name)) throw new IllegalStateException("Variable " + name + " con not be redefined at this place.")
+    }
     if (variablesStackSize >= 0) {
       val v = new Variable(name, MemoryStack(variablesStackSize, null), pointer, false)
       variablesStackSize += 1
@@ -104,7 +108,7 @@ class CompilerRuntime {
   }
   
   def getVariable(name: String): Variable = {
-    for (scope <- variableStack) {
+    for ((scope, _) <- variableStack) {
       if (scope contains name)
         return scope(name)
     }
@@ -119,16 +123,25 @@ class CompilerRuntime {
     if (variableStack.isEmpty) {
       throw new IllegalStateException("No variable scope has been initialised yet.")
     }
-    variableStack.head
+    variableStack.head._1
   }
   
-  def pushScope(): Unit = {
-    variableStack.push(mutable.Map())
+  def pushInitialScope(): Unit = {
+    if (variableStack.nonEmpty) {
+      throw new IllegalStateException("Internal compiler error: Can't push initial scope on non-empty stack.")
+    }
+    pushScope(true)
+  }
+  
+  def pushScope(): Unit = this.pushScope(false)
+  
+  private def pushScope(allowsRedefinition: Boolean): Unit = {
+    variableStack.push((mutable.Map(), allowsRedefinition))
   }
   
   def popScope(): Unit = {
     if (variablesStackSize >= 0) {
-      variablesStackSize -= variableStack.head.count(!_._2.const)
+      variablesStackSize -= variableStack.head._1.count(!_._2.const)
     }
     variableStack.pop()
   }
@@ -139,7 +152,7 @@ class CompilerRuntime {
     }
     variablesStackSize = 0
     stackResultType = result
-    pushScope()
+    pushScope(true)
   }
   
   def endStackSection(): Unit = {
