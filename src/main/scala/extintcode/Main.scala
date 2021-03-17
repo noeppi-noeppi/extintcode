@@ -14,7 +14,7 @@ object Main extends App {
     println("  vm        Runs the IntCode Interpreter / VM")
     println("  link      Links a Relocatable IntCode file to produce executable IntCode")
     println("  asm       Assembles IntCode Assembly to produce Relocatable IntCode")
-    println("  compile   Compiles an extintcode source file to relocatable IntCode")
+    println("  compile   Compiles an extintcode source file to IntCode Assembler")
   } else {
     args(0).toLowerCase match {
       case "vm" => IntCodeVM.run(args.tail.toIndexedSeq: _*)
