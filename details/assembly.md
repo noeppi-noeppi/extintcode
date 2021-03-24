@@ -92,8 +92,9 @@ A `datadef` must be one of the following:
 
 ```
 Multiple datadef s separated by a pipe ('|')
-Multiple ints separated by comma
+Multiple ints separated by comma.
 An int array: Multiple ints separated by comma enclosed in braces ('{}'). Here the length is prepended
 A string literal: Strings are int arrays from unicode code points.
 A string literal prefixed with r: Here the length is not prepeded.
+!ref  Memory of another datadef
 ```

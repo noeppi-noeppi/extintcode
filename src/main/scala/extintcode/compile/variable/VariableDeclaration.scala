@@ -1,6 +1,6 @@
 package extintcode.compile.variable
 
-import extintcode.asm.{AssemblyData, AssemblyText, DataBySizeValue, DataInts, Direct, FieldLabel, MemoryData, StmtMov}
+import extintcode.asm.{AssemblerData, AssemblerDataDefinition, AssemblyData, AssemblyText, DataBySizeValue, DataByValue, DataIntArray, DataInts, DataReference, Direct, FieldLabel, MemoryData, StmtMov}
 import extintcode.compile.literal.{LiteralArray, LiteralNull}
 import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression, LangStatement, Variable}
 import extintcode.util.FieldEntry
@@ -15,15 +15,23 @@ class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val ex
       runtime.createConstant(name, cc)
       (Nil, Nil)
     } else if (exported) {
-      val data = value match {
+      val (data, additional) = value match {
         case LiteralNull =>
           runtime.checkType("variable creation", pointer, actual = true)
-          DataInts((LiteralNull.plainResult, null))
+          val d = DataInts((LiteralNull.plainResult, null))
+          (d, Nil)
+        case array: LiteralArray =>
+          runtime.checkType("variable creation", pointer, actual = true)
+          val ref = runtime.newDataEntry("var_" + name + "_init")
+          val d = DataReference(ref)
+          val a = DataByValue(ref, DataIntArray(array.values.map(x => (x, null)): _*))
+          (d, List(a))
         case _ =>
           runtime.checkType("variable creation", pointer, actual = false)
-          value.constantExpression(runtime)
+          val d = value.constantExpression(runtime)
           .map(x => DataInts((x, null)))
           .getOrElse(throw new IllegalStateException("Exported values must have be compile time constant, an array literal or a null initializer: " + value.getClass.getSimpleName))
+          (d, Nil)
       }
       val entry = runtime.newDataEntry("var_" + name)
       val v = new Variable(name, MemoryData(entry), pointer, false)
@@ -31,8 +39,8 @@ class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val ex
       runtime.addGlobalVariable(v)
       (Nil, List(
         FieldLabel(FieldEntry(name, pointer)),
-        DataBySizeValue(entry, 1, data)
-      ))
+        DataByValue(entry, data)
+      ).appendedAll(additional))
     } else {
       runtime.startExpressionSection()
       val (code, data) = value.code(imports, runtime)

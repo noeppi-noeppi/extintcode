@@ -13,25 +13,27 @@ class CompilerRuntime {
   private var variablesStackSize = -1
   private val variableStack = mutable.Stack[(mutable.Map[String, Variable], Boolean)]()
   private val variableData = ListBuffer[AssemblyData]()
-  private val allVariables = mutable.Set[Variable]()
+  private val allVariables = ListBuffer[Variable]()
   private var stackResultType: Boolean = false
   private val controlStack = mutable.Stack[ControlJumps]()
   
   private var expressionStackSize = -1
   
   def newLabel(label: String): String = {
-    if (label.last.isDigit) {
-      throw new IllegalArgumentException("Internal compiler error: Label base name may not end with a number")
-    }
-    if (!labels.contains(label)) {
-      labels.put(label, 0)
+    val l = if (label.last.isDigit) {
+      label + "_"
+    } else {
       label
-    } else if (labels(label) < 0) {
+    }
+    if (!labels.contains(l)) {
+      labels.put(l, 0)
+      l
+    } else if (labels(l) < 0) {
       throw new IllegalStateException("Internal compiler error: Special label can not be overwritten with regular label.")
     } else {
-      val suffix = "_" + labels(label)
-      labels.put(label, labels(label) + 1)
-      label + suffix
+      val suffix = "_" + labels(l)
+      labels.put(l, labels(l) + 1)
+      l + suffix
     }
   }
 
@@ -47,16 +49,18 @@ class CompilerRuntime {
   }
   
   def newDataEntry(data: String): String = {
-    if (data.last.isDigit) {
-      throw new IllegalArgumentException("Internal compiler error: Data Entry base name may not end with a number")
-    }
-    if (!dataEntries.contains(data)) {
-      dataEntries.put(data, 0)
-      data
+    val d = if (data.last.isDigit) {
+      data + "_"
     } else {
-      val suffix = "_" + dataEntries(data)
-      dataEntries.put(data, dataEntries(data) + 1)
-      data + suffix
+      data
+    }
+    if (!dataEntries.contains(d)) {
+      dataEntries.put(d, 0)
+      d
+    } else {
+      val suffix = "_" + dataEntries(d)
+      dataEntries.put(d, dataEntries(d) + 1)
+      d + suffix
     }
   }
   
@@ -65,16 +69,12 @@ class CompilerRuntime {
       throw new IllegalStateException("Internal compiler error: Can't create variable inside expression.")
     }
     val scope = currentScope()
-    if (scope.contains(name)) throw new IllegalStateException("Variable " + name + " is already defined in the scope.")
-    // Take all layers of teh stack including the first one that allows for redefinitions
-    for ((parent, _) <- variableStack.take(variableStack.indexWhere(_._2) + 1)) {
-      if (parent.contains(name)) throw new IllegalStateException("Variable " + name + " con not be redefined at this place.")
-    }
+    checkName(name)
     if (variablesStackSize >= 0) {
       val v = new Variable(name, MemoryStack(variablesStackSize, null), pointer, false)
       variablesStackSize += 1
       scope.put(name, v)
-      allVariables.add(v)
+      allVariables.addOne(v)
       if (name.startsWith("~")) v.noConst()
       v
     } else {
@@ -82,7 +82,7 @@ class CompilerRuntime {
       val v = new Variable(name, MemoryData(dataEntry), pointer, false)
       variableData.addOne(DataBySize(dataEntry, 1))
       scope.put(name, v)
-      allVariables.add(v)
+      allVariables.addOne(v)
       if (name.startsWith("~")) v.noConst()
       v
     }
@@ -96,15 +96,26 @@ class CompilerRuntime {
       throw new IllegalStateException("Global or exported variables can only be created toplevel: " + v.name)
     }
     val scope = currentScope()
+    checkName(v.name)
     scope.put(v.name, v)
   }
   
   def createConstant(name: String, value: Long): Variable = {
     val scope = currentScope()
+    checkName(name)
     val v = new Variable(name, Direct(value, null), false, true)
     scope.put(name, v)
-      allVariables.add(v)
+      allVariables.addOne(v)
     v
+  }
+  
+  private def checkName(name: String): Unit = {
+    val scope = currentScope()
+    if (scope.contains(name)) throw new IllegalStateException("Variable " + name + " is already defined in the scope.")
+    // Take all layers of the stack including the first one that allows for redefinitions
+    for ((parent, _) <- variableStack.take(variableStack.indexWhere(_._2) + 1)) {
+      if (parent.contains(name)) throw new IllegalStateException("Variable " + name + " con not be redefined at this place.")
+    }
   }
   
   def getVariable(name: String): Variable = {
@@ -228,13 +239,13 @@ class CompilerRuntime {
   
   def getCollectedDataEntries: List[AssemblyData] = variableData.toList
   
-  def getPossiblyConstantVars: Set[Variable] = allVariables.filter(!_.const).filter(!_.name.startsWith("~")).filter(_.canBeConst).toSet
+  def getPossiblyConstantVars: List[Variable] = allVariables.filter(!_.const).filter(!_.name.startsWith("~")).filter(_.canBeConst).toList
   
   def stackSectionResultType: Option[Boolean] = if (variablesStackSize >= 0) Some(stackResultType) else None
   
   def getControl: ControlJumps = {
     if (controlStack.isEmpty) {
-      throw new IllegalStateException("Can't use break / continue otside a loop.")
+      throw new IllegalStateException("Can't use break / continue outside a loop.")
     }
     controlStack.head
   }

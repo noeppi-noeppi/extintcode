@@ -3,7 +3,7 @@ package extintcode.compile.literal
 import extintcode.asm.{AssemblyData, AssemblyText, DataByValue, DataIntArray, DirectData, ValType}
 import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression}
 
-class LiteralArray(values: List[Long]) extends LangExpression {
+class LiteralArray(val values: List[Long]) extends LangExpression {
   
   private var v: ValType = _
   

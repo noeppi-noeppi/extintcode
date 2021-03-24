@@ -7,6 +7,7 @@ class VariableUpdate(name: String, value: LangExpression) extends LangStatement 
   
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     val variable = runtime.getVariable(name)
+    variable.redef()
     variable.noConst()
     runtime.startExpressionSection()
     val (code, data) = value.code(imports, runtime)

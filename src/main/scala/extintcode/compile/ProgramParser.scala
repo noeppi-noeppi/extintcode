@@ -6,7 +6,7 @@ import extintcode.compile.function.{FunctionCallExpression, FunctionCallStatemen
 import extintcode.compile.literal.{LiteralArray, LiteralChar, LiteralInt, LiteralNull, LiteralString}
 import extintcode.compile.meta.{ImportStatement, TypeCast}
 import extintcode.compile.operator.{OperatorAdd, OperatorDiv, OperatorMul, OperatorSub, Operators}
-import extintcode.compile.unary.{LogicalNot, Negation}
+import extintcode.compile.operator2.{LogicalNot, Negation, Ternary}
 import extintcode.compile.variable.{CreatePointer, VariableAccess, VariableDeclaration, VariableDeref, VariableUpdate}
 import extintcode.util.InvalidFileException
 import org.apache.commons.io.input.SequenceReader
@@ -36,7 +36,11 @@ object ProgramParser extends ExtendedParsers {
   def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_for | control_block
   
   def expression: Parser[LangExpression] = op1sep(raw_expression, Operators.OPS)
-  def raw_expression: Parser[LangExpression] = literal | function_expression | cast_direct | cast_pointer | array_by_size | create_pointer | logical_not | unary_negation | array_paren_access | variable_deref | array_variable_access | variable_access
+  def raw_expression: Parser[LangExpression] = ternary | raw_expression_nt
+  
+  // If ternary was added here we had left recursion.
+  def expression_nt: Parser[LangExpression] = op1sep(raw_expression_nt, Operators.OPS)
+  def raw_expression_nt: Parser[LangExpression] = literal | function_expression | cast_direct | cast_pointer | array_by_size | create_pointer | logical_not | unary_negation | array_paren_access | variable_deref | array_variable_access | variable_access
   
   def keyword: Parser[String] = "import" | "implicit" | "true" | "false" | "null" | "array" | "export" | "let" | "const" | "as" | "def" | "return" | "break" | "continue" | "next" | "if" | "else" | "while"
   
@@ -57,6 +61,7 @@ object ProgramParser extends ExtendedParsers {
   
   def unary_negation: Parser[LangExpression] = "-" ~> expression ^^ (x => new Negation(x))
   def logical_not: Parser[LangExpression] = "!" ~> expression ^^ (x => new LogicalNot(x))
+  def ternary: Parser[LangExpression] = expression_nt ~ "?" ~ expression ~ ":" ~ expression ^^ { case condition ~ _ ~ ifTrue ~ _ ~ ifFalse => new Ternary(condition, ifTrue, ifFalse) }
   
   def variable_declaration: Parser[LangStatement] = opt("export") ~ ("let" | "const") ~ opt("&") ~ identifier ~ "=" ~ expression ^^ { case export ~ key ~ mode ~ name ~ _ ~ value => new VariableDeclaration(name, mode.isDefined, key == "const", export.isDefined, value) }
   def variable_deref: Parser[LangExpression] = "*" ~> identifier ^^ (x => new VariableDeref(x))

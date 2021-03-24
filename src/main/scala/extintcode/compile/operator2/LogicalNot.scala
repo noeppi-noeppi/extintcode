@@ -1,4 +1,4 @@
-package extintcode.compile.unary
+package extintcode.compile.operator2
 
 import extintcode.asm.{AssemblyData, AssemblyText, Direct, StmtEq, StmtMul, ValType}
 import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression}

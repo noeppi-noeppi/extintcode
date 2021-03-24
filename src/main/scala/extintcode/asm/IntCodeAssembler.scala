@@ -95,7 +95,7 @@ object IntCodeAssembler {
     ))
     data.foreach {
       case Left(x) =>
-        val code = x.code
+        val code = x.code(dataEntries)
         if (code.size != x.size) throw new IllegalStateException("Internal Assembler error: Data Entry wrote invalid amount of ints: Expected: " + x.size + ", Written: " + code.size)
         ints.addAll(code)
       case Right(_) =>

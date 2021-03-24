@@ -84,11 +84,12 @@ object AssemblyParser extends CommonParsers {
   def datadef_value: Parser[AssemblerDataDefinition] = MODULE_NAME ~ data ^^ { case name ~ data => DataByValue(name, data) }
   
   def data: Parser[AssemblerData] = rep1sep(data_no_rep, "|") ^^ (x => DataJoined(x: _*))
-  def data_no_rep: Parser[AssemblerData] = data_ints | data_int_array | data_string_raw | data_string
+  def data_no_rep: Parser[AssemblerData] = data_ints | data_int_array | data_string_raw | data_string | data_reference
   def data_ints: Parser[AssemblerData] = rep1sep(int, ",") ^^ (x => DataInts(x: _*))
   def data_int_array: Parser[AssemblerData] = "{" ~> repsep(int, ",") <~ "}" ^^ (x => DataIntArray(x: _*))
   def data_string_raw: Parser[AssemblerData] = "r" ~> escapedStringLiteral ^^ (x => DataInts(IntCodeAssembler.stringToCodePoints(x).map((_, null)): _*))
   def data_string: Parser[AssemblerData] = escapedStringLiteral ^^ (x => DataIntArray(IntCodeAssembler.stringToCodePoints(x).map((_, null)): _*))
+  def data_reference: Parser[AssemblerData] = "!" ~> MODULE_NAME ^^ (x => DataReference(x))
   
   def label_text: Parser[AssemblerLabel] = label_func | label_code_func | label_code 
   def label_code: Parser[AssemblerLabel] = ":" ~> MODULE_NAME ^^ (x => CodeLabel(x))
