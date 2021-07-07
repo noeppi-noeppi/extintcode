@@ -12,12 +12,15 @@ class CompilerRuntime {
   
   private var variablesStackSize = -1
   private val variableStack = mutable.Stack[(mutable.Map[String, Variable], Boolean)]()
+  private val literalData = ListBuffer[AssemblyData]()
   private val variableData = ListBuffer[AssemblyData]()
   private val allVariables = ListBuffer[Variable]()
   private var stackResultType: Boolean = false
   private val controlStack = mutable.Stack[ControlJumps]()
   
   private var expressionStackSize = -1
+  
+  private val stringLiterals = mutable.Map[String, String]()
   
   def newLabel(label: String): String = {
     val l = if (label.last.isDigit) {
@@ -237,7 +240,7 @@ class CompilerRuntime {
     case _ => None
   }
   
-  def getCollectedDataEntries: List[AssemblyData] = variableData.toList
+  def getCollectedDataEntries: List[AssemblyData] = List.newBuilder.addAll(literalData).addAll(variableData).result()
   
   def getPossiblyConstantVars: List[Variable] = allVariables.filter(!_.const).filter(!_.name.startsWith("~")).filter(_.canBeConst).toList
   
@@ -256,5 +259,16 @@ class CompilerRuntime {
   
   def popControl(): Unit = {
     controlStack.pop()
+  }
+  
+  def createStringLiteral(str: String): String = {
+    if (!stringLiterals.contains(str)) {
+      val name = newDataEntry("literal")
+      stringLiterals.put(str, name)
+      literalData.addOne(DataByValue(name, DataString(str)))
+      name
+    } else {
+      stringLiterals(str)
+    }
   }
 }

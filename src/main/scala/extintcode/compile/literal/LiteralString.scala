@@ -10,12 +10,8 @@ class LiteralString(value: String) extends LangExpression {
   private var v: ValType = _
 
   override def generate(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
-    val name = runtime.newDataEntry("literal")
-    val data = ListBuffer(
-      DataByValue(name, DataString(value))
-    )
-    v = DirectData(name)
-    (Nil, data.toList)
+    v = DirectData(runtime.createStringLiteral(value))
+    (Nil, Nil)
   }
 
   override def pointer(): Boolean = true

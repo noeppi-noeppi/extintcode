@@ -1,7 +1,6 @@
 package extintcode.asm
 
 import extintcode.util.{CommonParsers, FieldEntry, FunctionEntry, InvalidFileException}
-import org.apache.commons.text.StringEscapeUtils
 
 import java.io.StringReader
 import scala.util.matching.Regex
@@ -37,15 +36,15 @@ object AssemblyParser extends CommonParsers {
     case x: AssemblerLabel => Right(x)
   }
 
-  def int: Parser[IntType] = int_rel_self | int_rel | int_plain
+  def int: Parser[IntType] = int_rel_self | int_rel | int_plain | failure("Relocatable int expected")
   def int_plain: Parser[IntType] = wholeNumber ^^ (x => (x.toLong, null))
   def int_rel: Parser[IntType] = MODULE_NAME ~ "%" ~ wholeNumber ^^ { case name ~ _ ~ num => (num.toLong, name) }
   def int_rel_self: Parser[IntType] = "%" ~> wholeNumber ^^ (x => (x.toLong, ""))
   
   def comment: Parser[Unit] = ("\\s*;".r ~ ".*".r | "\\s*".r) ^^ (_ => ())
   
-  def ivalue: AssemblyParser.Parser[ValType] = special_address | direct_label | direct_data | ovalue | direct
-  def ovalue: AssemblyParser.Parser[ValType] = special | memory_label | memory_data | memory_stack | memory
+  def ivalue: AssemblyParser.Parser[ValType] = special_address | direct_label | direct_data | ovalue | direct | failure("ivalue expected")
+  def ovalue: AssemblyParser.Parser[ValType] = special | memory_label | memory_data | memory_stack | memory | failure("ovalue expected")
   
   def direct: Parser[ValType] = int ^^ (x => Direct(x._1, x._2))
   def memory: Parser[ValType] = "[" ~> int <~ "]" ^^ (x => Memory(x._1, x._2))
@@ -57,7 +56,7 @@ object AssemblyParser extends CommonParsers {
   def special: Parser[ValType] = ("NEXTDYN" | "CALLSTACK" | "BACKJUMP" | "RETURN" | "GLOBAL[1-8]".r | "PARAM\\d+".r) ^^ (x => SpecialValue(x))
   def special_address: Parser[ValType] = "\\" ~> ("NEXTDYN" | "CALLSTACK" | "BACKJUMP" | "RETURN" | "GLOBAL[1-8]".r | "PARAM\\d+".r) ^^ (x => SpecialValueAddress(x))
   
-  def statement: AssemblyParser.Parser[AssemblerStatement] = stmt_add | stmt_mul | stmt_inp | stmt_outp | stmt_jnz | stmt_jz | stmt_lt | stmt_eq | stmt_rel | stmt_ret | stmt_mov | stmt_jmp | stmt_push | stmt_pop | stmt_dyn | stmt_load | stmt_store | stmt_call | stmt_raw
+  def statement: AssemblyParser.Parser[AssemblerStatement] = stmt_add | stmt_mul | stmt_inp | stmt_outp | stmt_jnz | stmt_jz | stmt_lt | stmt_eq | stmt_rel | stmt_ret | stmt_mov | stmt_jmp | stmt_push | stmt_pop | stmt_dyn | stmt_load | stmt_store | stmt_call | stmt_raw | failure("Statement expected")
   def stmt_add: Parser[AssemblerStatement] = "add" ~> ovalue ~ "," ~ ivalue ~ "," ~ ivalue ^^ { case out ~ _ ~ in1 ~ _ ~ in2 => StmtAdd(in1, in2, out) }
   def stmt_mul: Parser[AssemblerStatement] = "mul" ~> ovalue ~ "," ~ ivalue ~ "," ~ ivalue ^^ { case out ~ _ ~ in1 ~ _ ~ in2 => StmtMul(in1, in2, out) }
   def stmt_inp: Parser[AssemblerStatement] = "inp" ~> ovalue ^^ (x => StmtInp(x))

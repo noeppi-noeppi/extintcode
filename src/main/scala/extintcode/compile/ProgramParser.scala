@@ -3,7 +3,7 @@ package extintcode.compile
 import extintcode.compile.array.{ArrayAccess, ArrayBySize, ArrayUpdate}
 import extintcode.compile.control.{CodeBlock, ControlFor, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
 import extintcode.compile.function.{FunctionCallExpression, FunctionCallStatement, FunctionDefinition, ReturnStatement}
-import extintcode.compile.literal.{LiteralArray, LiteralChar, LiteralInt, LiteralNull, LiteralString}
+import extintcode.compile.literal.{LiteralArray, LiteralBool, LiteralChar, LiteralInt, LiteralNull, LiteralString, LiteralVoid}
 import extintcode.compile.meta.{ImportStatement, TypeCast}
 import extintcode.compile.operator.{OperatorAdd, OperatorDiv, OperatorMul, OperatorSub, Operators}
 import extintcode.compile.operator2.{LogicalNot, Negation, Ternary}
@@ -53,9 +53,10 @@ object ProgramParser extends ExtendedParsers {
   def literal: Parser[LangExpression] = literal_int | literal_true | literal_false | literal_null | literal_array | literal_string | literal_char
   def literal_int: Parser[LangExpression] = wholeNumber ^^ (x => new LiteralInt(x.toLong))
   def literal_char: Parser[LangExpression] = escapedStringLiteralSingleQuotes ^^ (x => new LiteralChar(x))
-  def literal_true: Parser[LangExpression] = "true" ^^ (_ => new LiteralInt(1))
-  def literal_false: Parser[LangExpression] = "false" ^^ (_ => new LiteralInt(0))
+  def literal_true: Parser[LangExpression] = "true" ^^ (_ => new LiteralBool(true))
+  def literal_false: Parser[LangExpression] = "false" ^^ (_ => new LiteralBool(false))
   def literal_null: Parser[LangExpression] = "null" ^^ (_ => LiteralNull)
+  def literal_void: Parser[LangExpression] = "_" ^^ (_ => LiteralVoid)
   def literal_array: Parser[LangExpression] = "array" ~> "{" ~> repsep(wholeNumber, ",") <~ "}" ^^ (x => new LiteralArray(x.map(_.toLong)))
   def literal_string: Parser[LangExpression] = escapedStringLiteral ^^ (x => new LiteralString(x))
   

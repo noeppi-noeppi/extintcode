@@ -1,8 +1,8 @@
 package extintcode.compile.variable
 
-import extintcode.asm.{AssemblerData, AssemblerDataDefinition, AssemblyData, AssemblyText, DataBySizeValue, DataByValue, DataIntArray, DataInts, DataReference, Direct, FieldLabel, MemoryData, StmtMov}
+import extintcode.asm._
 import extintcode.compile.literal.{LiteralArray, LiteralNull}
-import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression, LangStatement, Variable}
+import extintcode.compile._
 import extintcode.util.FieldEntry
 
 class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val exported: Boolean, value: LangExpression) extends LangStatement {
