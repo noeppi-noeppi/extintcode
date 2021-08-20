@@ -6,7 +6,7 @@ This file covers what a Binary IntCode file is. A binary IntCode file stores the
 
 *A n-bit unsigned integer* means an n-bit unsigned integer in big-endian.
 
-Each binary IntCode file starts with a 64-bit unsigned integer with the value `0x0xAD4E570FC0DE2019`.
+Each binary IntCode file starts with a 64-bit unsigned integer with the value `0xAD4E570FC0DE2019`.
 
 Then a 16-bit unsigned integer follows that defines the major IntCode version. This must be 2.
 
