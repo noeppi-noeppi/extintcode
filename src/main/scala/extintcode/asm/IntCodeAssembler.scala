@@ -60,7 +60,9 @@ object IntCodeAssembler {
     var inst = 0
     var maxFunc = 0
     text.foreach {
-      case Left(x) => inst += x.size
+      case Left(x) =>
+        x.printWarning()
+        inst += x.size
       case Right(x) =>
         x.name.foreach(labelMap.put(_, inst))
         x.function.foreach(functionMap.put(_, inst))

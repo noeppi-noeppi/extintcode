@@ -4,12 +4,14 @@ sealed trait ValType {
   val mode: Int
   def apply(data: LabelData): (Long, String)
   def string(): String
+  def immediatePointer(): Option[ValType] = None
 }
 
 case class Direct(value: Long, relocate: String) extends ValType {
   override val mode: Int = 1
   override def apply(data: LabelData): (Long, String) = (value, relocate)
   override def string(): String = (if (relocate == null) "" else relocate + "%") + value.toString
+  override def immediatePointer(): Option[ValType] = Some(Memory(value, relocate))
 }
 
 case class Memory(value: Long, relocate: String) extends ValType {
@@ -28,6 +30,7 @@ case class DirectLabel(value: String) extends ValType {
   override val mode: Int = 1
   override def apply(data: LabelData): (Long, String) = (data.labelAddress(value), "")
   override def string(): String = "&" + value
+  override def immediatePointer(): Option[ValType] = Some(MemoryLabel(value))
 }
 
 case class MemoryLabel(value: String) extends ValType {
@@ -40,6 +43,7 @@ case class DirectData(value: String) extends ValType {
   override val mode: Int = 1
   override def apply(data: LabelData): (Long, String) = (data.dataAddress(value), "")
   override def string(): String = "!" + value
+  override def immediatePointer(): Option[ValType] = Some(MemoryData(value))
 }
 
 case class MemoryData(value: String) extends ValType {
@@ -58,4 +62,5 @@ case class SpecialValueAddress(value: String) extends ValType {
   override val mode: Int = 1
   override def apply(data: LabelData): (Long, String) = IntCodeAssembler.parseSpecialValue(value, if (data.hasDependencies) Int.MaxValue else data.maxFunc)(data)
   override def string(): String = "\\" + value
+  override def immediatePointer(): Option[ValType] = Some(SpecialValue(value))
 }

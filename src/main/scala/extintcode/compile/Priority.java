@@ -4,6 +4,7 @@ public enum Priority {
     POWER(true),
     MULTIPLICATIVE(false),
     ADDITIVE(false),
+    CONCATENATION(false),
     RELATIONAL(false),
     EQUALITY(false),
     LOGICAL_AND(false),

@@ -16,7 +16,7 @@ class FunctionCallExpression(module: Option[String], name: String, params: List[
     val code = ListBuffer[AssemblyText]()
     val (call, data) = CompilerFunctions.call(imports, runtime, func, false, params: _*)
     code.addAll(call)
-    p = func._1.pointerReturn
+    p = func._2.pointerReturn
     // createExpressionResult is called that late as this saves us one int on the stack
     v = runtime.createExpressionResult()
     code.addOne(StmtMov(SpecialValue(IntCodeRuntime.Names.RETURN), v))

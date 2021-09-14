@@ -5,6 +5,8 @@ import extintcode.asm.IntCodeAssembler._
 sealed trait AssemblerStatement extends AssemblyText {
   val size: Int
   def code(data: LabelData): Seq[(Long, String)]
+  def printWarning(): Unit = ()
+  def values(): Seq[ValType]
 }
 
 case class StmtAdd(in1: ValType, in2: ValType, out: ValType) extends AssemblerStatement {
@@ -13,6 +15,7 @@ case class StmtAdd(in1: ValType, in2: ValType, out: ValType) extends AssemblerSt
     opcode(1, in1, in2, out), in1(data), in2(data), out(data)
   )
   override def textStr(): String = s"        add     ${out.string()}, ${in1.string()}, ${in2.string()}"
+  override def values(): Seq[ValType] = Seq(in1, in2, out)
 }
 
 case class StmtMul(in1: ValType, in2: ValType, out: ValType) extends AssemblerStatement {
@@ -21,6 +24,7 @@ case class StmtMul(in1: ValType, in2: ValType, out: ValType) extends AssemblerSt
     opcode(2, in1, in2, out), in1(data), in2(data), out(data)
   )
   override def textStr(): String = s"        mul     ${out.string()}, ${in1.string()}, ${in2.string()}"
+  override def values(): Seq[ValType] = Seq(in1, in2, out)
 }
 
 case class StmtInp(out: ValType) extends AssemblerStatement {
@@ -29,6 +33,7 @@ case class StmtInp(out: ValType) extends AssemblerStatement {
     opcode(3, out), out(data)
   )
   override def textStr(): String = s"        inp     ${out.string()}"
+  override def values(): Seq[ValType] = Seq(out)
 }
 
 case class StmtOutp(in: ValType) extends AssemblerStatement {
@@ -37,6 +42,7 @@ case class StmtOutp(in: ValType) extends AssemblerStatement {
     opcode(4, in), in(data)
   )
   override def textStr(): String = s"        outp    ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in)
 }
 
 case class StmtJnz(in: ValType, target: ValType) extends AssemblerStatement {
@@ -45,6 +51,7 @@ case class StmtJnz(in: ValType, target: ValType) extends AssemblerStatement {
     opcode(5, in, target), in(data), target(data)
   )
   override def textStr(): String = s"        jnz     ${target.string()}, ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in, target)
 }
 
 case class StmtJz(in: ValType, target: ValType) extends AssemblerStatement {
@@ -53,6 +60,7 @@ case class StmtJz(in: ValType, target: ValType) extends AssemblerStatement {
     opcode(6, in, target), in(data), target(data)
   )
   override def textStr(): String = s"        jz      ${target.string()}, ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in, target)
 }
 
 case class StmtLt(in1: ValType, in2: ValType, out: ValType) extends AssemblerStatement {
@@ -61,6 +69,7 @@ case class StmtLt(in1: ValType, in2: ValType, out: ValType) extends AssemblerSta
     opcode(7, in1, in2, out), in1(data), in2(data), out(data)
   )
   override def textStr(): String = s"        lt      ${out.string()}, ${in1.string()}, ${in2.string()}"
+  override def values(): Seq[ValType] = Seq(in1, in2, out)
 }
 
 case class StmtEq(in1: ValType, in2: ValType, out: ValType) extends AssemblerStatement {
@@ -69,6 +78,7 @@ case class StmtEq(in1: ValType, in2: ValType, out: ValType) extends AssemblerSta
     opcode(8, in1, in2, out), in1(data), in2(data), out(data)
   )
   override def textStr(): String = s"        eq      ${out.string()}, ${in1.string()}, ${in2.string()}"
+  override def values(): Seq[ValType] = Seq(in1, in2, out)
 }
 
 case class StmtRel(in: ValType) extends AssemblerStatement {
@@ -77,6 +87,7 @@ case class StmtRel(in: ValType) extends AssemblerStatement {
     opcode(9, in), in(data)
   )
   override def textStr(): String = s"        rel     ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in)
 }
 
 object StmtRet extends AssemblerStatement {
@@ -85,6 +96,7 @@ object StmtRet extends AssemblerStatement {
     (99, null)
   )
   override def textStr(): String = s"        ret"
+  override def values(): Seq[ValType] = Seq()
 }
 
 case class StmtMov(in: ValType, out: ValType) extends AssemblerStatement {
@@ -93,6 +105,7 @@ case class StmtMov(in: ValType, out: ValType) extends AssemblerStatement {
     opcode(1, in, Direct(0, null), out), in(data), Direct(0, null)(data), out(data)
   )
   override def textStr(): String = s"        mov     ${out.string()}, ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in, out)
 }
 
 case class StmtJmp(target: ValType) extends AssemblerStatement {
@@ -101,6 +114,7 @@ case class StmtJmp(target: ValType) extends AssemblerStatement {
     opcode(6, Direct(0, null), target), Direct(0, null)(data), target(data)
   )
   override def textStr(): String = s"        jmp     ${target.string()}"
+  override def values(): Seq[ValType] = Seq(target)
 }
 
 case class StmtPush(in: ValType) extends AssemblerStatement {
@@ -111,6 +125,7 @@ case class StmtPush(in: ValType) extends AssemblerStatement {
     opcode(9, in), in(data)
   )
   override def textStr(): String = s"        push    ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in)
 }
 
 case class StmtPop(in: ValType) extends AssemblerStatement {
@@ -132,6 +147,7 @@ case class StmtPop(in: ValType) extends AssemblerStatement {
     ))
   }
   override def textStr(): String = s"        pop     ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in)
 }
 
 case class StmtDyn(amount: ValType, target: ValType) extends AssemblerStatement {
@@ -143,6 +159,7 @@ case class StmtDyn(amount: ValType, target: ValType) extends AssemblerStatement 
     )
   }
   override def textStr(): String = s"        dyn     ${target.string()}, ${amount.string()}"
+  override def values(): Seq[ValType] = Seq(amount, target)
 }
 
 case class StmtLoad(pointer: ValType, out: ValType) extends AssemblerStatement {
@@ -157,8 +174,8 @@ case class StmtLoad(pointer: ValType, out: ValType) extends AssemblerStatement {
   // rel CALLSTACK
   // X1 -> out
   
-  if (pointer.mode == 1) println("IntCode Assembler: Warning: Using load with direct mode pointer")
-  
+  override def printWarning(): Unit = if (pointer.mode == 1) println("IntCode Assembler: Warning: Using load with direct mode pointer")
+
   override val size: Int = 28
   override def code(data: LabelData): Seq[(Long, String)] = {
     Seq(
@@ -174,6 +191,7 @@ case class StmtLoad(pointer: ValType, out: ValType) extends AssemblerStatement {
     )
   }
   override def textStr(): String = s"        load    ${out.string()}, ${pointer.string()}"
+  override def values(): Seq[ValType] = Seq(pointer, out)
 }
 
 case class StmtStore(in: ValType, pointer: ValType) extends AssemblerStatement {
@@ -189,8 +207,8 @@ case class StmtStore(in: ValType, pointer: ValType) extends AssemblerStatement {
   // -1 * CALLSTACK -> CALLSTACK
   // rel X2
   // rel CALLSTACK
-  
-  if (pointer.mode == 1) println("IntCode Assembler: Warning: Using store with direct mode pointer")
+
+  override def printWarning(): Unit = if (pointer.mode == 1) println("IntCode Assembler: Warning: Using store with direct mode pointer")
 
   override val size: Int = 32
   override def code(data: LabelData): Seq[(Long, String)] = {
@@ -208,6 +226,7 @@ case class StmtStore(in: ValType, pointer: ValType) extends AssemblerStatement {
     )
   }
   override def textStr(): String = s"        store   ${pointer.string()}, ${in.string()}"
+  override def values(): Seq[ValType] = Seq(in, pointer)
 }
 
 case class StmtCall(target: ValType) extends AssemblerStatement {
@@ -219,10 +238,12 @@ case class StmtCall(target: ValType) extends AssemblerStatement {
     )
   }
   override def textStr(): String = s"        call    ${target.string()}"
+  override def values(): Seq[ValType] = Seq(target)
 }
 
 case class StmtRaw(ints: Seq[(Long, String)]) extends AssemblerStatement {
   override val size: Int = ints.size
   override def code(data: LabelData): Seq[(Long, String)] = ints
   override def textStr(): String = s"        raw     ${ints.map(x => Direct(x._1, x._2)).map(_.string()).mkString(", ")}"
+  override def values(): Seq[ValType] = Seq()
 }

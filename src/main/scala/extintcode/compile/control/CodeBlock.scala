@@ -8,15 +8,15 @@ import scala.collection.mutable.ListBuffer
 class CodeBlock(val statements: List[LangStatement]) extends LangStatement {
   
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
-    runtime.pushScope()
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
+    text.addAll(runtime.pushScope())
     for (statement <- statements) {
       val (c, d) = statement.code(imports, runtime)
       text.addAll(c)
       data.addAll(d)
     }
-    runtime.popScope()
+    text.addAll(runtime.popScope())
     (text.toList, data.toList)
   }
 }

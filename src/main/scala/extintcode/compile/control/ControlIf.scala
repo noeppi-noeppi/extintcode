@@ -12,32 +12,32 @@ class ControlIf(condition: LangExpression, ifTrue: List[LangStatement], ifFalse:
     else if (ifTrue.isEmpty) println("Warning: If condition with only else branch. You should flip the condition.")
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
-    runtime.startExpressionSection()
+    text.addAll(runtime.startExpressionSection())
     val (cc, dc) = condition.code(imports, runtime)
     text.addAll(cc)
     data.addAll(dc)
     runtime.checkType("if condition", expected = false, condition.pointer())
-    runtime.endExpressionSection()
+    text.addAll(runtime.endExpressionSection())
     val endLabel = runtime.newLabel("endif")
     val elseLabel = if (ifFalse.isEmpty) endLabel else runtime.newLabel("else")
     text.addOne(StmtJz(condition.value(runtime), DirectLabel(elseLabel)))
-    runtime.pushScope()
+    text.addAll(runtime.pushScope())
     for (statement <- ifTrue) {
       val (c, d) = statement.code(imports, runtime)
       text.addAll(c)
       data.addAll(d)
     }
-    runtime.popScope()
+    text.addAll(runtime.popScope())
     if (ifFalse.nonEmpty) {
       text.addOne(StmtJmp(DirectLabel(endLabel)))
       text.addOne(CodeLabel(elseLabel))
-      runtime.pushScope()
+      text.addAll(runtime.pushScope())
       for (statement <- ifFalse) {
         val (c, d) = statement.code(imports, runtime)
         text.addAll(c)
         data.addAll(d)
       }
-      runtime.popScope()
+      text.addAll(runtime.popScope())
     }
     text.addOne(CodeLabel(endLabel))
     (text.toList, data.toList)

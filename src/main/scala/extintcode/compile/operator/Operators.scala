@@ -1,5 +1,6 @@
 package extintcode.compile.operator
 
+import extintcode.compile.operator2.Concat
 import extintcode.compile.{LangExpression, Operator, Priority}
 
 object Operators {
@@ -10,6 +11,7 @@ object Operators {
   val MODULUS: Operator[LangExpression] = new OperatorIml("%", Priority.MULTIPLICATIVE, new OperatorMod(_, _))
   val ADDITION: Operator[LangExpression] = new OperatorIml("+", Priority.ADDITIVE, new OperatorAdd(_, _))
   val SUBTRACTION: Operator[LangExpression] = new OperatorIml("-", Priority.ADDITIVE, new OperatorSub(_, _))
+  val CONCAT: Operator[LangExpression] = new OperatorIml("~", Priority.CONCATENATION, new Concat(_, _))
   val LOWER: Operator[LangExpression] = new OperatorIml("<", Priority.RELATIONAL, new OperatorLt(_, _))
   val GREATER: Operator[LangExpression] = new OperatorIml(">", Priority.RELATIONAL, new OperatorGt(_, _))
   val LOWER_EQUAL: Operator[LangExpression] = new OperatorIml("<=", Priority.RELATIONAL, new OperatorLe(_, _))
@@ -27,6 +29,7 @@ object Operators {
     MODULUS,
     ADDITION,
     SUBTRACTION,
+    CONCAT,
     LOWER_EQUAL,
     GREATER_EQUAL,
     LOWER,

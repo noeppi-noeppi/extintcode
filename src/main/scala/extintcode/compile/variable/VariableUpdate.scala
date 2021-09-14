@@ -3,16 +3,21 @@ package extintcode.compile.variable
 import extintcode.asm.{AssemblyData, AssemblyText, StmtMov}
 import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression, LangStatement}
 
+import scala.collection.mutable.ListBuffer
+
 class VariableUpdate(name: String, value: LangExpression) extends LangStatement {
   
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     val variable = runtime.getVariable(name)
     variable.redef()
     variable.noConst()
-    runtime.startExpressionSection()
-    val (code, data) = value.code(imports, runtime)
-    runtime.endExpressionSection()
+    val text = ListBuffer[AssemblyText]()
+    text.addAll(runtime.startExpressionSection())
+    val (t, data) = value.code(imports, runtime)
+    text.addAll(t)
+    text.addAll(runtime.endExpressionSection())
     runtime.checkType("variable update", variable.pointer, value.pointer())
-    (code.appended(StmtMov(value.value(runtime), variable.location)), data)
+    text.addOne(StmtMov(value.value(runtime), variable.location))
+    (text.toList, data)
   }
 }

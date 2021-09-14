@@ -2,8 +2,10 @@ package extintcode.compile
 
 import extintcode.Util
 import extintcode.asm._
+import extintcode.compile.frame.{EndFrame, ScopeFrame}
 import extintcode.compile.function.FunctionDefinition
 import extintcode.compile.meta.ImportStatement
+import extintcode.compile.postprocess.PostProcessor
 import extintcode.compile.variable.VariableDeclaration
 import extintcode.util._
 import joptsimple.OptionParser
@@ -21,6 +23,8 @@ object IntCodeCompiler {
     val specOutput = options.acceptsAll(List("o", "output").asJava, "The output file").withRequiredArg().withValuesConvertedBy(new PathConverter())
     val specHeader = options.acceptsAll(List("h", "header").asJava, "Search paths for headers.").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).withValuesConvertedBy(new PathConverter(PathProperties.DIRECTORY_EXISTING, PathProperties.READABLE))
     val specLib = options.acceptsAll(List("l", "lib", "library").asJava, "When this option is set, compilation will fail for any toplevel statement that is not a function or field declaration as those should not be used in libraries and may cause hard to find bugs.")
+    val specPostProcess = options.acceptsAll(List("s", "skip-post").asJava, "Skip Assembler Post-Processing")
+    val specFrames = options.acceptsAll(List("f", "frames").asJava, "Output frame information in generated assembler")
     val specFile = options.nonOptions("The input file to read.").withValuesConvertedBy(new PathConverter(PathProperties.FILE_EXISTING, PathProperties.READABLE))
     val set = options.parse(args: _*)    
     if (!set.has(specFile) || set.valueOf(specFile) == null) {
@@ -56,10 +60,10 @@ object IntCodeCompiler {
     val program = ProgramParser.parseProgram(reader)
     reader.close()
     val writer = Files.newBufferedWriter(output, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-    compile(moduleName, version, program, resolver, writer, set.has(specLib))
+    compile(moduleName, version, program, resolver, writer, set.has(specLib), !set.has(specPostProcess), set.has(specFrames))
   }
   
-  def compile(module: String, version: Int, program: List[Either[LangStatement, FunctionDefinition]], resolver: ModuleResolver[HeaderModule], writer: BufferedWriter, library: Boolean): Unit = {
+  def compile(module: String, version: Int, program: List[Either[LangStatement, FunctionDefinition]], resolver: ModuleResolver[HeaderModule], writer: BufferedWriter, library: Boolean, postProcess: Boolean, frames: Boolean): Unit = {
     if (library) {
       println("Compiling library " + module)
     } else {
@@ -81,12 +85,14 @@ object IntCodeCompiler {
     runtime.pushInitialScope()
     if (statements.nonEmpty) {
       println("Compiling static code")
+      text.addOne(ScopeFrame(0))
       for (statement <- statements) {
         if (library && !validLibraryToplevel(statement)) throw new InvalidFileException("Invalid library: Statement of type " + statement.getClass.getSimpleName + " ist not allowed as toplevel staement in a library.")
         val (c, d) = statement.code(imports, runtime)
         text.addAll(c)
         data.addAll(d)
       }
+      text.addOne(EndFrame)
     }
     if (local.nonEmpty) {
       println("Compiling functions")
@@ -104,23 +110,27 @@ object IntCodeCompiler {
     
     runtime.getPossiblyConstantVars.foreach(v => println("Variable " + v.name + " can be a constant."))
     
+    if (postProcess) println("Post processing generated Assembler")
+    val processors = PostProcessor.processors(postProcess, frames)
+    val (processedText, processedData) = processors.foldRight((text.toList, data.toList))((processor, e) => processor.process(e._1, e._2))
+    
     println("Writing IntCode Assembler")
     writer.write("$V " + IntCode.MAJOR + "." + version + "\n")
     imports.getDependencies.foreach(dep => writer.write("$D " + dep._1 + "." + IntCode.MAJOR + "." + dep._2 + "\n"))
     writer.write("\n")
     writer.write("section .text\n")
-    text.foreach(line => writer.write(line.textStr() + "\n"))
-    if (data.nonEmpty) {
+    processedText.foreach(line => writer.write(line.textStr() + "\n"))
+    if (processedData.nonEmpty) {
       writer.write("\n")
       writer.write("section .data\n")
-      data.foreach(line => writer.write(line.dataStr() + "\n"))
+      processedData.foreach(line => writer.write(line.dataStr() + "\n"))
     }
     writer.close()
   }
   
   def validLibraryToplevel(statement: LangStatement): Boolean = statement match {
     case _: ImportStatement => true
-    case x: VariableDeclaration if x.exported => true
+    case x: VariableDeclaration if x.exported || x.const => true
     case _ => false
   }
 }

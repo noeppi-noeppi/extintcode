@@ -83,8 +83,9 @@ class ImportTable(headers: ModuleResolver[HeaderModule], localFunctions: List[Fu
     addDependency(module)
   }
   
-  def getImplicit(module: String, name: String, params: Int, feature: String): (FunctionEntry, ValType) = {
-    implicitImports.getOrElse((module, name, params), throw new IllegalStateException(feature + " requires implicit import of function " + module + "." + name + " which is not imported."))
+  def getImplicit(module: String, name: String, params: Int, feature: String): (String, FunctionEntry, ValType) = {
+    val result = implicitImports.getOrElse((module, name, params), throw new IllegalStateException(feature + " requires implicit import of function " + module + "." + name + " which is not imported."))
+    (module, result._1, result._2)
   }
   
   def isNameImported(name: String): Boolean = importedNames.contains(name)
@@ -105,7 +106,7 @@ class ImportTable(headers: ModuleResolver[HeaderModule], localFunctions: List[Fu
     (entry._1, Direct(entry._2, moduleName))
   }
   
-  def getFunc(module: Option[String], name: String, params: Int): (FunctionEntry, ValType) = {
+  def getFunc(module: Option[String], name: String, params: Int): (String, FunctionEntry, ValType) = {
     val moduleName = module.map(x => {
       if (x != IntCodeRuntime.Modules.LOCAL && !importedModules.contains(x)) {
         throw new IllegalStateException("Can not access function " + name + ": Module " + x + " is not imported.")
@@ -121,7 +122,7 @@ class ImportTable(headers: ModuleResolver[HeaderModule], localFunctions: List[Fu
         importedNames(name)
       }
     })
-    if (moduleName == IntCodeRuntime.Modules.LOCAL) {
+    val result = if (moduleName == IntCodeRuntime.Modules.LOCAL) {
       if (!localMap.contains((name, params))) {
         throw new IllegalStateException("Local function " + name + "#" + params + " not defined.")
       }
@@ -130,6 +131,7 @@ class ImportTable(headers: ModuleResolver[HeaderModule], localFunctions: List[Fu
       val entry = headerMap(moduleName).getFunc(name, params)
       (entry._1, Direct(entry._2, moduleName))
     }
+    (moduleName, result._1, result._2)
   }
   
   def getDependencies: Map[String, Int] = dependencies.toMap

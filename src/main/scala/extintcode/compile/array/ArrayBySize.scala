@@ -12,13 +12,20 @@ class ArrayBySize(size: LangExpression) extends LangExpression {
 
   override def generate(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     size.constantExpression(runtime) match {
-      case Some(value) =>
+      case Some(value) if !runtime.stackSection() =>
         val name = runtime.newDataEntry("literal")
         val data = List(
           DataBySize(name, value.toInt)
         )
         v = DirectData(name)
         (Nil, data)
+      case Some(value) =>
+        val text = ListBuffer[AssemblyText]()
+        val data = ListBuffer[AssemblyData]()
+        v = runtime.createExpressionResult()
+        text.addOne(StmtDyn(Direct(value + 1, null), v))
+        text.addOne(StmtStore(Direct(value, null), v))
+        (text.toList, data.toList)
       case None =>
         val text = ListBuffer[AssemblyText]()
         val data = ListBuffer[AssemblyData]()
@@ -36,4 +43,6 @@ class ArrayBySize(size: LangExpression) extends LangExpression {
 
   override def pointer(): Boolean = true
   override def result(result: CompilerRuntime): ValType = v
+
+  override def constantLength(runtime: CompilerRuntime): Option[Long] = size.constantExpression(runtime)
 }

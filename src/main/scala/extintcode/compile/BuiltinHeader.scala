@@ -9,8 +9,8 @@ object BuiltinHeader extends HeaderModule(IntCodeRuntime.Modules.BUILTIN, 0, Nil
   (FunctionEntry("exit", pure = true, pointerReturn = false, List()), -1)
 )) {
   
-  def specialFunctionCode(func: (FunctionEntry, ValType), args: ValType*): Option[List[AssemblyText]] = {
-    val (function, memory) = func
+  def specialFunctionCode(func: (String, FunctionEntry, ValType), args: ValType*): Option[List[AssemblyText]] = {
+    val (_, function, memory) = func
     memory match {
       case Direct(_, this.name) =>
       case _ => return None

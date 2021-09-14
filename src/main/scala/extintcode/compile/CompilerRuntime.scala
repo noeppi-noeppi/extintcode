@@ -1,6 +1,7 @@
 package extintcode.compile
 
 import extintcode.asm._
+import extintcode.compile.frame.{EndFrame, ExpressionFrame, Frame, ScopeFrame, StackFrame, VariableFrame}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -67,7 +68,7 @@ class CompilerRuntime {
     }
   }
   
-  def createVariable(name: String, pointer: Boolean): Variable = {
+  def createVariable(name: String, pointer: Boolean): (Variable, List[Frame]) = {
     if (expressionStackSize >= 0) {
       throw new IllegalStateException("Internal compiler error: Can't create variable inside expression.")
     }
@@ -79,7 +80,7 @@ class CompilerRuntime {
       scope.put(name, v)
       allVariables.addOne(v)
       if (name.startsWith("~")) v.noConst()
-      v
+      (v, List(VariableFrame(name, v.location)))
     } else {
       val dataEntry = newDataEntry("var_" + name)
       val v = new Variable(name, MemoryData(dataEntry), pointer, false)
@@ -87,7 +88,7 @@ class CompilerRuntime {
       scope.put(name, v)
       allVariables.addOne(v)
       if (name.startsWith("~")) v.noConst()
-      v
+      (v, List(VariableFrame(name, v.location)))
     }
   }
   
@@ -147,29 +148,44 @@ class CompilerRuntime {
     pushScope(true)
   }
   
-  def pushScope(): Unit = this.pushScope(false)
+  def pushScope(): List[Frame] = {
+    val lastVariables = getLastVariables
+    pushScope(false)
+    List(ScopeFrame(lastVariables))
+  }
+  
+  private def getLastVariables: Int = {
+    if (variablesStackSize >= 0) {
+      variableStack.headOption.map(_._1.size).getOrElse(0)
+    } else {
+      0
+    }
+  }
   
   private def pushScope(allowsRedefinition: Boolean): Unit = {
     variableStack.push((mutable.Map(), allowsRedefinition))
   }
   
-  def popScope(): Unit = {
+  def popScope(): List[Frame] = {
     if (variablesStackSize >= 0) {
       variablesStackSize -= variableStack.head._1.count(!_._2.const)
     }
     variableStack.pop()
+    List(EndFrame)
   }
   
-  def startStackSection(result: Boolean): Unit = {
+  def startStackSection(result: Boolean): List[Frame] = {
     if (variablesStackSize >= 0) {
       throw new IllegalStateException("Internal compiler error: Nested stack sections are not allowed.")
     }
+    val lastVariables = getLastVariables
     variablesStackSize = 0
     stackResultType = result
     pushScope(true)
+    List(StackFrame(lastVariables))
   }
   
-  def endStackSection(): Unit = {
+  def endStackSection(): List[Frame] = {
     if (variablesStackSize < 0) {
       throw new IllegalStateException("Internal compiler error: Can't end stack section without start.")
     }
@@ -179,33 +195,26 @@ class CompilerRuntime {
     }
     variablesStackSize = -1
     stackResultType = false
+    List(EndFrame)
   }
   
-  def call(jmp: ValType): List[AssemblyText] = {
-    val totalStackSize = Math.max(0, variablesStackSize) + Math.max(0, expressionStackSize)
-    val code = ListBuffer[AssemblyText]()
-    if (totalStackSize > 0) {
-      code.addOne(StmtPush(Direct(totalStackSize, null)))
-    }
-    code.addOne(StmtCall(jmp))
-    if (totalStackSize > 0) {
-      code.addOne(StmtPop(Direct(totalStackSize, null)))
-    }
-    code.toList
-  }
+  def stackSection(): Boolean = variablesStackSize >= 0
   
-  def startExpressionSection(): Unit = {
+  def startExpressionSection(): List[Frame] = {
     if (expressionStackSize >= 0) {
       throw new IllegalStateException("Internal compiler error: Nested expression sections are not allowed.")
     }
+    val lastVariables = getLastVariables
     expressionStackSize = 0
+    List(ExpressionFrame(lastVariables))
   }
   
-  def endExpressionSection(): Unit = {
+  def endExpressionSection(): List[Frame] = {
     if (expressionStackSize < 0) {
       throw new IllegalStateException("Internal compiler error: Can't end expression section without start.")
     }
     expressionStackSize = -1
+    List(EndFrame)
   }
   
   def createExpressionResult(): ValType = {

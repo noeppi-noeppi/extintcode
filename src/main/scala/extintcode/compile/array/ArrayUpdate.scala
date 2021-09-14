@@ -12,7 +12,7 @@ class ArrayUpdate(array: LangExpression, idx: LangExpression, value: LangExpress
     val cc = idx.constantExpression(runtime)
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
-    runtime.startExpressionSection()
+    text.addAll(runtime.startExpressionSection())
     val (c, d) = array.code(imports, runtime)
     text.addAll(c)
     data.addAll(d)
@@ -27,7 +27,7 @@ class ArrayUpdate(array: LangExpression, idx: LangExpression, value: LangExpress
     text.addAll(cv)
     data.addAll(dv)
     runtime.checkType("array element", expected = false, value.pointer())
-    runtime.endExpressionSection()
+    text.addAll(runtime.endExpressionSection())
     val address = cc match {
       case Some(idxValue) =>
         text.addOne(StmtAdd(array.value(runtime), Direct(idxValue + 1, null), SpecialValue(IntCodeRuntime.Names.GLOBAL1)))

@@ -3,9 +3,12 @@ package extintcode.compile.variable
 import extintcode.asm._
 import extintcode.compile.literal.{LiteralArray, LiteralNull}
 import extintcode.compile._
+import extintcode.compile.frame.GlobalFrame
 import extintcode.util.FieldEntry
 
-class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val exported: Boolean, value: LangExpression) extends LangStatement {
+import scala.collection.mutable.ListBuffer
+
+class VariableDeclaration(name: String, pointer: Boolean, val const: Boolean, val exported: Boolean, value: LangExpression) extends LangStatement {
   
   override def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     if (const) {
@@ -29,8 +32,8 @@ class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val ex
         case _ =>
           runtime.checkType("variable creation", pointer, actual = false)
           val d = value.constantExpression(runtime)
-          .map(x => DataInts((x, null)))
-          .getOrElse(throw new IllegalStateException("Exported values must have be compile time constant, an array literal or a null initializer: " + value.getClass.getSimpleName))
+            .map(x => DataInts((x, null)))
+            .getOrElse(throw new IllegalStateException("Exported values must have be compile time constant, an array literal or a null initializer: " + value.getClass.getSimpleName))
           (d, Nil)
       }
       val entry = runtime.newDataEntry("var_" + name)
@@ -38,19 +41,24 @@ class VariableDeclaration(name: String, pointer: Boolean, const: Boolean, val ex
       v.noConst()
       runtime.addGlobalVariable(v)
       (Nil, List(
+        GlobalFrame(name, v.location),
         FieldLabel(FieldEntry(name, pointer)),
         DataByValue(entry, data)
       ).appendedAll(additional))
     } else {
-      runtime.startExpressionSection()
-      val (code, data) = value.code(imports, runtime)
-      runtime.endExpressionSection()
-      val v = runtime.createVariable(name, pointer)
+      val text = ListBuffer[AssemblyText]()
+      text.addAll(runtime.startExpressionSection())
+      val (t, data) = value.code(imports, runtime)
+      text.addAll(t)
+      text.addAll(runtime.endExpressionSection())
+      val (v, frames) = runtime.createVariable(name, pointer)
+      text.addAll(frames)
       if (value.constantExpression(runtime).isEmpty) {
         v.noConst()
       }
       runtime.checkType("variable creation", pointer, value.pointer())
-      (code.appended(StmtMov(value.value(runtime), v.location)), data)
+      text.addOne(StmtMov(value.value(runtime), v.location))
+      (text.toList, data)
     }
   }
 }

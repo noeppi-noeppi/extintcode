@@ -13,21 +13,21 @@ class ControlFor(init: Option[LangStatement], condition: LangExpression, last: O
     val data = ListBuffer[AssemblyData]()
     val endLabel = runtime.newLabel("endfor")
     val loopLabel = runtime.newLabel("loop")
-    runtime.pushScope()
+    text.addAll(runtime.pushScope())
     if (init.isDefined) {
       val (ci, di) = init.get.code(imports, runtime)
       text.addAll(ci)
       data.addAll(di)
     }
     text.addOne(CodeLabel(loopLabel))
-    runtime.startExpressionSection()
+    text.addAll(runtime.startExpressionSection())
     val (cc, dc) = condition.code(imports, runtime)
     text.addAll(cc)
     data.addAll(dc)
     runtime.checkType("for condition", expected = false, condition.pointer())
-    runtime.endExpressionSection()
+    text.addAll(runtime.endExpressionSection())
     text.addOne(StmtJz(condition.value(runtime), DirectLabel(endLabel)))
-    runtime.pushScope()
+    text.addAll(runtime.pushScope())
     runtime.pushControl(ControlJumps(Left(DirectLabel(endLabel)), Left(DirectLabel(loopLabel)), Right("next is not available in for loop. Use a while loop instead.")))
     for (statement <- statements) {
       val (c, d) = statement.code(imports, runtime)
@@ -35,13 +35,13 @@ class ControlFor(init: Option[LangStatement], condition: LangExpression, last: O
       data.addAll(d)
     }
     runtime.popControl()
-    runtime.popScope()
+    text.addAll(runtime.popScope())
     if (last.isDefined) {
       val (cl, dl) = last.get.code(imports, runtime)
       text.addAll(cl)
       data.addAll(dl)
     }
-    runtime.popScope()
+    text.addAll(runtime.popScope())
     text.addOne(StmtJmp(DirectLabel(loopLabel)))
     text.addOne(CodeLabel(endLabel))
     (text.toList, data.toList)

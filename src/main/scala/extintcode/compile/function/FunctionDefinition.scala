@@ -1,6 +1,6 @@
 package extintcode.compile.function
 
-import extintcode.asm.{AssemblyData, AssemblyText, CodeFunctionLabel, CodeLabel, Direct, IntCodeAssembler, SpecialValue, StmtJmp, StmtMov}
+import extintcode.asm._
 import extintcode.compile.{CompilerRuntime, ImportTable, LangStatement}
 import extintcode.util.{FunctionEntry, IntCodeRuntime}
 
@@ -16,13 +16,15 @@ class FunctionDefinition(val name: String, val pointerReturn: Boolean, params: L
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
     runtime.specialLabel(label)
+    text.addAll(runtime.startStackSection(pointerReturn))
     text.addOne(CodeFunctionLabel(label, entry))
-    runtime.startStackSection(pointerReturn)
-    val backjump = runtime.createVariable("~backjump", pointer = false)
+    val (backjump, backjumpFrames) = runtime.createVariable("~backjump", pointer = false)
+    text.addAll(backjumpFrames)
     text.addOne(StmtMov(SpecialValue(IntCodeRuntime.Names.BACKJUMP), backjump.location))
     for (((param, pointer), i) <- params.zipWithIndex) {
-      val paramVar = runtime.createVariable(param, pointer)
+      val (paramVar, paramFrames) = runtime.createVariable(param, pointer)
       paramVar.noConst()
+      text.addAll(paramFrames)
       text.addOne(StmtMov(SpecialValue(IntCodeAssembler.paramName0Based(i)), paramVar.location))
     }
     for (statement <- statements) {
@@ -32,7 +34,7 @@ class FunctionDefinition(val name: String, val pointerReturn: Boolean, params: L
     }
     text.addOne(StmtMov(Direct(0, null), SpecialValue(IntCodeRuntime.Names.RETURN)))
     text.addOne(StmtJmp(backjump.location))
-    runtime.endStackSection()
+    text.addAll(runtime.endStackSection())
     (text.toList, data.toList)
   }
 }

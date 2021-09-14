@@ -8,7 +8,7 @@ import extintcode.util.{FunctionEntry, IntCodeRuntime}
 import scala.collection.mutable.ListBuffer
 
 abstract class OperatorFunction(
-                                 factory: ImportTable => (FunctionEntry, ValType),
+                                 factory: ImportTable => (String, FunctionEntry, ValType),
                                  op1: LangExpression, op2: LangExpression
                                ) extends OperatorBase(op1, op2) {
   
@@ -30,21 +30,18 @@ abstract class OperatorFunction(
 
 class OperatorDiv(op1: LangExpression, op2: LangExpression) extends OperatorFunction(
   imports => imports.getImplicit("stdlib", "div", 2, "Division Operator"),
-  op1, op2
-) {
+  op1, op2) {
   override protected def constantExpression(l1: Long, l2: Long): Option[Long] = Some(l1 / l2)
 }
 
 class OperatorMod(op1: LangExpression, op2: LangExpression) extends OperatorFunction(
   imports => imports.getImplicit("stdlib", "mod", 2, "Modulus Operator"),
-  op1, op2
-) {
+  op1, op2) {
   override protected def constantExpression(l1: Long, l2: Long): Option[Long] = Some(l1 % l2)
 }
 
 class OperatorPow(op1: LangExpression, op2: LangExpression) extends OperatorFunction(
   imports => imports.getImplicit("stdlib", "pow", 2, "Power Operator"),
-  op1, op2
-) {
+  op1, op2) {
   override protected def constantExpression(l1: Long, l2: Long): Option[Long] = Some(Math.pow(l1, l2).toLong)
 }

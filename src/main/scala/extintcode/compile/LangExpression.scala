@@ -20,4 +20,5 @@ trait LangExpression {
   }
   
   def constantExpression(runtime: CompilerRuntime): Option[Long] = None
+  def constantLength(runtime: CompilerRuntime): Option[Long] = None
 }

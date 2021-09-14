@@ -18,4 +18,6 @@ class LiteralArray(val values: List[Long]) extends LangExpression {
 
   override def pointer(): Boolean = true
   override def result(result: CompilerRuntime): ValType = v
+
+  override def constantLength(runtime: CompilerRuntime): Option[Long] = Some(values.size)
 }
