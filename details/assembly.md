@@ -37,7 +37,8 @@ An `ovalue` is defined to be one of the following:
 [*int]     The value at that address added to the relative base register.
 [&label]   The value at the address of that label
 [!ref]     The value at the address of a value defined in the data section
-header     One of the header fields (including PARAM*). Must be all caps. This will reference the memory at that address, not the address itself.
+header     One of the header fields (including PARAM*). Must be all caps. This will reference the
+           memory at that address, not the address itself.
 ```
 
 An `ivalue` is defined to be one of the following:
@@ -48,7 +49,7 @@ int        The Integer defined by that int.
 &label     Memory address of a label
 !ref       Memory address of a value defined in the data section
 \header    One of the header fields (including PARAM*). Must be all caps. This is the address
-of the header field, not the memory at that address.
+           of the header field, not the memory at that address.
 ```
 
 Each line  in the text section must be a statement, where a statement is one of these:
@@ -69,7 +70,8 @@ mov ovalue, ivalue                Set param 2 to param 1
 jmp ivalue                        Unconditional Jump
 push ivalue                       Add to relative base register and to header field CALLSTACK
 pop ivalue                        Remove from relative base register and from header field CALLSTACK
-dyn  ovalue, ivalue               Increase header field NEXTDYN by ivalue and store first usable address in ovalue
+dyn  ovalue, ivalue               Increase header field NEXTDYN by ivalue and store first usable address in ovalue.
+                                  ivalue and ovalue may NOT reference the same meory
 load ovalue, ivalue               Read ivalue as a memory address  and store the value in oavlue (Pointer resolution)
 store ivalue, ivalue              Read second param and store it at the memory value found in first param (Pointer creation)
 call ivalue                       Sets the header value BACKJUMP to the instruction right after the call instruction and jumps to ivalue

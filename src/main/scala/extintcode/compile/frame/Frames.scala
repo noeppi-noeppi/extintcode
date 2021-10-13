@@ -11,8 +11,13 @@ case class VariableFrame(name: String, address: ValType) extends Frame {
   override def comment(): String = "variable " + name + " " + address.string()
 }
 
-case class CallFrame(module: String, func: FunctionEntry) extends Frame {
+case class CallFrame(module: String, func: FunctionEntry) extends StmtFrame {
   override def comment(): String = "call " + module + " " + func
+}
+
+// Immediately before the backjump call
+case class ReturnFrame(resultType: Boolean) extends StmtFrame {
+  override def comment(): String = "ret " + (if (resultType) "&" else ".")
 }
 
 case class ScopeFrame(override val at: Int) extends StartFrame(at) {

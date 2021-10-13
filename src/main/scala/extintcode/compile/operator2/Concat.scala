@@ -20,7 +20,7 @@ class Concat(op1: LangExpression, op2: LangExpression) extends LangExpression {
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
     for (expr <- expressionList) {
-      val (t, d) = expr.generate(imports, runtime)
+      val (t, d) = expr.code(imports, runtime)
       text.addAll(t)
       data.addAll(d)
     }

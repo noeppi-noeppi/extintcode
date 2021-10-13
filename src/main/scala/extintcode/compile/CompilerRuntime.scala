@@ -16,7 +16,7 @@ class CompilerRuntime {
   private val literalData = ListBuffer[AssemblyData]()
   private val variableData = ListBuffer[AssemblyData]()
   private val allVariables = ListBuffer[Variable]()
-  private var stackResultType: Boolean = false
+  private var stackResultType: Option[Boolean] = None
   private val controlStack = mutable.Stack[ControlJumps]()
   
   private var expressionStackSize = -1
@@ -72,6 +72,9 @@ class CompilerRuntime {
     if (expressionStackSize >= 0) {
       throw new IllegalStateException("Internal compiler error: Can't create variable inside expression.")
     }
+    if (name.startsWith("~") && variablesStackSize < 0) {
+      throw new IllegalStateException("Internal compiler error: Internal variable outside of stack section.")
+    }
     val scope = currentScope()
     checkName(name)
     if (variablesStackSize >= 0) {
@@ -90,6 +93,20 @@ class CompilerRuntime {
       if (name.startsWith("~")) v.noConst()
       (v, List(VariableFrame(name, v.location)))
     }
+  }
+  
+  def createInternalVariable(nameHint: String, pointer: Boolean): (Variable, List[Frame]) = {
+    var idx = 0
+    while (true) {
+      try {
+        checkName("~i_" + nameHint + idx)
+        return createVariable("~i_" + nameHint + idx, pointer)
+      } catch {
+        case _: Exception =>
+      }
+      idx += 1
+    }
+    throw new Error
   }
   
   def addGlobalVariable(v: Variable): Unit = {
@@ -174,7 +191,12 @@ class CompilerRuntime {
     List(EndFrame)
   }
   
-  def startStackSection(result: Boolean): List[Frame] = {
+  // stack sections that are no functions
+  // required for example for foreach loops to use internal variables
+  def anonStackSection(): List[Frame] = startStackSection(None)
+  def startStackSection(result: Boolean): List[Frame] = startStackSection(Some(result))
+  
+  private def startStackSection(result: Option[Boolean]): List[Frame] = {
     if (variablesStackSize >= 0) {
       throw new IllegalStateException("Internal compiler error: Nested stack sections are not allowed.")
     }
@@ -194,7 +216,7 @@ class CompilerRuntime {
       throw new IllegalStateException("Variable stack handling error.")
     }
     variablesStackSize = -1
-    stackResultType = false
+    stackResultType = None
     List(EndFrame)
   }
   
@@ -253,7 +275,7 @@ class CompilerRuntime {
   
   def getPossiblyConstantVars: List[Variable] = allVariables.filter(!_.const).filter(!_.name.startsWith("~")).filter(_.canBeConst).toList
   
-  def stackSectionResultType: Option[Boolean] = if (variablesStackSize >= 0) Some(stackResultType) else None
+  def stackSectionResultType: Option[Boolean] = if (variablesStackSize >= 0) stackResultType else None
   
   def getControl: ControlJumps = {
     if (controlStack.isEmpty) {

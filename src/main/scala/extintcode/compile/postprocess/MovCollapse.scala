@@ -1,5 +1,5 @@
 package extintcode.compile.postprocess
-import extintcode.asm.{AssemblyData, AssemblyText, MemoryStack, StmtMov}
+import extintcode.asm.{AssemblyData, AssemblyText, MemoryStack, StmtAdd, StmtEq, StmtInp, StmtLt, StmtMov, StmtMul}
 import extintcode.compile.frame.FrameWalker
 
 // Collapse two mov instructions into one if the first one
@@ -13,16 +13,51 @@ object MovCollapse extends PostProcessor {
     (walker.walk(), data)
   }
   
-  private class Walker(text: List[AssemblyText]) extends FrameWalker(text) {
-    override def process(stmt: AssemblyText): AssemblyText = stmt match {
+  private class Walker(text: List[AssemblyText]) extends FrameWalker(text, peekInExpressions = true) {
+    override def process(stmt: AssemblyText): Seq[AssemblyText] = stmt match {
       case StmtMov(from1, to1 @ MemoryStack(_, null)) if expression() =>
         peek() match {
           case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
             consume()
-            StmtMov(from1, to2)
-          case _ => stmt
+            List(StmtMov(from1, to2))
+          case _ => List(stmt)
         }
-      case _ => stmt
+      case StmtAdd(op1, op2, to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtAdd(op1, op2, to2))
+          case _ => List(stmt)
+        }
+      case StmtMul(op1, op2, to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtMul(op1, op2, to2))
+          case _ => List(stmt)
+        }
+      case StmtInp(to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtInp(to2))
+          case _ => List(stmt)
+        }
+      case StmtLt(op1, op2, to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtLt(op1, op2, to2))
+          case _ => List(stmt)
+        }
+      case StmtEq(op1, op2, to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtEq(op1, op2, to2))
+          case _ => List(stmt)
+        }
+      case _ => List(stmt)
     }
   }
 }

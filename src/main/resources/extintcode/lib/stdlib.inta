@@ -1,4 +1,4 @@
-$V 2.0
+$V 2.1
 
 section .text
         jmp     &end
@@ -88,7 +88,7 @@ section .text
 :iint_nextchar
         inp     GLOBAL1
         eq      GLOBAL2, GLOBAL1, 45
-        jnz      &iint_chnage_sign, GLOBAL2
+        jnz     &iint_change_sign, GLOBAL2
         eq      GLOBAL2, GLOBAL1, 10
         jz      &iint_append, GLOBAL2
         mul     RETURN, RETURN, GLOBAL3
@@ -98,64 +98,93 @@ section .text
         add     GLOBAL1, GLOBAL1, -48
         add     RETURN, RETURN, GLOBAL1
         jmp     &iint_nextchar
-:iint_chnage_sign
+:iint_change_sign
         mul     GLOBAL3, GLOBAL3, -1
         jmp     &iint_nextchar
         
-:#?oint(.)
-        jnz     &oint_nz, PARAM1
-        outp    48
+:#?parse(&)
+        mov     RETURN, 0
+        mov     GLOBAL3, 1                  ; global3 is the sign
+        mov     GLOBAL4, 0                  ; global4 is the current offset. Start at 0. increment in start of loop
+        load    GLOBAL5, PARAM1             ; global5 is the length
+:parse_nextchar
+        add     GLOBAL4, GLOBAL4, 1
+        lt      GLOBAL6, GLOBAL5, GLOBAL4
+        jz      &parse_doinput, GLOBAL6
+        mul     RETURN, RETURN, GLOBAL3
+        jmp     BACKJUMP
+:parse_doinput
+        add     GLOBAL6, PARAM1, GLOBAL4
+        load    GLOBAL1, GLOBAL6
+        eq      GLOBAL2, GLOBAL1, 45
+        jnz     &parse_change_sign, GLOBAL2
+        mul     RETURN, RETURN, 10
+        add     GLOBAL1, GLOBAL1, -48
+        add     RETURN, RETURN, GLOBAL1
+        jmp     &parse_nextchar
+:parse_change_sign
+        mul     GLOBAL3, GLOBAL3, -1
+        jmp     &parse_nextchar
+        
+:#oint(.)
+        mov     [*0], BACKJUMP
+        call    &func_ointnnl
         outp    10
+        jmp     [*0]
+        
+        
+:func_ointnnl#?ointnnl(.)                    ; ointnnl is called by oint and olist. Check there is signature or purity changes
+        jnz     &ointnnl_nz, PARAM1
+        outp    48
         mov     RETURN, 0
         jmp     BACKJUMP
-:oint_nz
+:ointnnl_nz
         lt      GLOBAL1, PARAM1, 0          ; Store sign in global1
         mul     GLOBAL1, GLOBAL1, -2
         add     GLOBAL1, GLOBAL1, 1
         eq      GLOBAL2, -1, GLOBAL1
-        jz      &oint_positive, GLOBAL2
+        jz      &ointnnl_positive, GLOBAL2
         outp    45
-:oint_positive
+:ointnnl_positive
         mul     GLOBAL1, GLOBAL1, PARAM1
         add     GLOBAL1, GLOBAL1, 1
         mov     GLOBAL2, 0                  ; global2 stores the amount of digits
         mov     GLOBAL3, 1
         mov     GLOBAL8, 0
-:oint_count_digit
+:ointnnl_count_digit
         add     GLOBAL2, GLOBAL2, 1
         mul     GLOBAL3, GLOBAL3, 10
         lt      GLOBAL4, GLOBAL1, GLOBAL3
-        jz      &oint_count_digit, GLOBAL4
-:oint_print_digit
+        jz      &ointnnl_count_digit, GLOBAL4
+:ointnnl_print_digit
         mov     GLOBAL3, 1
         add     GLOBAL4, GLOBAL2, -1
-:oint_det_base
-        jz      &oint_base, GLOBAL4
+:ointnnl_det_base
+        jz      &ointnnl_base, GLOBAL4
         add     GLOBAL4, GLOBAL4, -1
         mul     GLOBAL3, GLOBAL3, 10
-        jmp     &oint_det_base
-:oint_base
+        jmp     &ointnnl_det_base
+:ointnnl_base
         mov     GLOBAL4, 0
-:oint_det_digit
+:ointnnl_det_digit
         mul     GLOBAL5, GLOBAL4, GLOBAL3
         lt      GLOBAL5, GLOBAL5, GLOBAL1
-        jz      &oint_outp, GLOBAL5
+        jz      &ointnnl_outp, GLOBAL5
         add     GLOBAL4, GLOBAL4, 1
-        jmp     &oint_det_digit
-:oint_outp
+        jmp     &ointnnl_det_digit
+:ointnnl_outp
         add     GLOBAL4, GLOBAL4, -1
         mul     GLOBAL6, GLOBAL4, GLOBAL3
         mul     GLOBAL6, GLOBAL6, -1
         add     GLOBAL1, GLOBAL1, GLOBAL6
         add     GLOBAL6, GLOBAL4, 48
         add     GLOBAL8, GLOBAL8, GLOBAL4
-        jz      &oint_skip_outp, GLOBAL8
+        jz      &ointnnl_skip_outp, GLOBAL8
         outp    GLOBAL6
-:oint_skip_outp
+:ointnnl_skip_outp
         mov     GLOBAL8, 1
         add     GLOBAL2, GLOBAL2, -1
-        jnz     &oint_print_digit, GLOBAL2
-        outp    10
+        jnz     &ointnnl_print_digit, GLOBAL2
         mov     RETURN, 0
         jmp     BACKJUMP
         
@@ -165,6 +194,8 @@ section .text
         inp     GLOBAL3
         eq      GLOBAL4, GLOBAL3, 10
         jnz     &istr_end_input, GLOBAL4
+        eq      GLOBAL4, GLOBAL3, 15        ; CR because windows
+        jnz     &istr_input_char, GLOBAL4
         add     GLOBAL1, GLOBAL1, 1
         add     GLOBAL5, NEXTDYN, GLOBAL1
         store   GLOBAL5, GLOBAL3
@@ -176,12 +207,28 @@ section .text
         add     NEXTDYN, NEXTDYN, 1
         jmp     BACKJUMP
         
+:#?ostrnnl(&)                               ; Same as ostr but without the newline. Code duplication
+                                            ; saves a push/pop. Do all changes to both ostrnnl and ostr
+        load    GLOBAL1, PARAM1             ; string length
+        mov     GLOBAL2, 1
+:ostrnnl_output_char
+        lt      GLOBAL3, GLOBAL1, GLOBAL2
+        jnz     &ostrnnl_end, GLOBAL3
+        add     GLOBAL5, PARAM1, GLOBAL2
+        load    GLOBAL4, GLOBAL5
+        outp    GLOBAL4
+        add     GLOBAL2, GLOBAL2, 1
+        jmp     &ostrnnl_output_char
+:ostrnnl_end
+        mov     RETURN, 0
+        jmp     BACKJUMP
+        
 :func_ostr#?ostr(&)                         ; ostr is called by obool. Check when signature or purity is changed.
         load    GLOBAL1, PARAM1             ; string length
         mov     GLOBAL2, 1
 :ostr_output_char
         lt      GLOBAL3, GLOBAL1, GLOBAL2
-        jnz      &ostr_end, GLOBAL3
+        jnz     &ostr_end, GLOBAL3
         add     GLOBAL5, PARAM1, GLOBAL2
         load    GLOBAL4, GLOBAL5
         outp    GLOBAL4
@@ -215,19 +262,41 @@ section .text
         mov     RETURN, GLOBAL2
         jmp     BACKJUMP
         
-:#obool(.)                                  ; Function is not pure as we call ostr here
-        mov     [*0], BACKJUMP              ; Move BACKJUMP on the stack.
-                                            ; As ostr in pure, we need no push here
+:#?obool(.)                                 ; Function is pure because of tailcall
         jz      &obool_false, PARAM1
         mov     PARAM1, !bool_true
         jmp     &obool_outp
 :obool_false
         mov     PARAM1, !bool_false
 :obool_outp
-        call    &func_ostr
-                                              ; No mov for RETURN as RETURN is already set by ostr. (Always 0)
-        jmp     [*0]
+        jmp     &func_ostr                   ; BACKJUMP still our own backjump value.
+                                             ; using jmp instead of call won't set BACKJUMP so ostr instantly
+                                             ; jumps back to our BACKJUMP
         
+:#olist(&)                                   ; Not pure as this calls oint
+        mov     [*0], BACKJUMP
+        outp    91
+        load    [*1], PARAM1                 ; list length
+        mov     [*2], 1
+        mov     [*3], PARAM1
+:olist_output_elem
+        lt      GLOBAL3, [*1], [*2]
+        jnz     &olist_end, GLOBAL3
+        add     GLOBAL5, [*3], [*2]
+        load    PARAM1, GLOBAL5
+        call    &func_ointnnl                ; No push as oint is pure
+        add     [*2], [*2], 1
+        add     GLOBAL5, [*2], -1
+        eq      GLOBAL6, [*1], GLOBAL5
+        jnz     &olist_output_elem, GLOBAL6
+        outp    44
+        jmp     &olist_output_elem
+:olist_end
+        outp    93
+        outp    10
+        mov     RETURN, 0
+        jmp     [*0]
+
 :end
 
 section .data

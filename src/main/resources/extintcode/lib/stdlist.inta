@@ -1,0 +1,52 @@
+$V 2.0
+
+section .text
+        jmp     &end
+        
+:#?&indices(&.)
+        mov     GLOBAL1, 0                  ; index list length
+        load    GLOBAL2, PARAM1             ; string length
+        mov     GLOBAL3, 0                  ; Current offset. Starts at 0, incremented at begin of loop
+:indices_nextchar
+        add     GLOBAL3, GLOBAL3, 1
+        lt      GLOBAL4, GLOBAL2, GLOBAL3
+        jnz     &indices_end, GLOBAL4
+        add     GLOBAL4, PARAM1, GLOBAL3
+        load    GLOBAL5, GLOBAL4
+        eq      GLOBAL4, GLOBAL5, PARAM2
+        jz      &indices_nextchar, GLOBAL4  ; Process next char if it is not the separator
+        add     GLOBAL1, GLOBAL1, 1
+        add     GLOBAL4, NEXTDYN, GLOBAL1
+        add     GLOBAL5, GLOBAL3, -1
+        store   GLOBAL4, GLOBAL5
+        jmp     &indices_nextchar
+:indices_end
+        store   NEXTDYN, GLOBAL1
+        mov     RETURN, NEXTDYN
+        add     NEXTDYN, NEXTDYN, GLOBAL1
+        add     NEXTDYN, NEXTDYN, 1
+        jmp     BACKJUMP
+        
+:#?&sublist(&..)
+        lt      GLOBAL1, PARAM2, PARAM3
+        jnz     &sublist_bounds, GLOBAL1
+        raw     0
+:sublist_bounds
+        mul     GLOBAL2, PARAM2, -1
+        add     GLOBAL2, PARAM3, GLOBAL2    ; Sublist length
+        add     GLOBAL1, GLOBAL2, 1         ; Memory to allocate
+        dyn     RETURN, GLOBAL1             ; Base address
+        store   RETURN, GLOBAL2             ; Store sublist length
+        add     GLOBAL3, PARAM1, PARAM2     ; Base source offset
+        mov     GLOBAL1, 1                  ; offset counter
+:sublist_next
+        lt      GLOBAL4, GLOBAL2, GLOBAL1
+        jnz     BACKJUMP, GLOBAL4
+        add     GLOBAL4, GLOBAL3, GLOBAL1    ; Source address
+        add     GLOBAL5, RETURN, GLOBAL1     ; Target address
+        load    GLOBAL6, GLOBAL4
+        store   GLOBAL5, GLOBAL6
+        add     GLOBAL1, GLOBAL1, 1
+        jmp     &sublist_next
+
+:end

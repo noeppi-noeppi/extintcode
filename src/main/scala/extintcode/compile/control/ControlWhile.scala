@@ -1,7 +1,7 @@
 package extintcode.compile.control
 
 import extintcode.asm.{AssemblyData, AssemblyText, CodeLabel, DirectLabel, StmtJmp, StmtJz}
-import extintcode.compile.{CompilerRuntime, ControlJumps, ImportTable, LangExpression, LangStatement}
+import extintcode.compile.{CodePathCheckResult, CodePathChecker, CompilerRuntime, ControlJumps, ImportTable, LangExpression, LangStatement}
 
 import scala.collection.mutable.ListBuffer
 
@@ -36,4 +36,6 @@ class ControlWhile(condition: LangExpression, statements: List[LangStatement]) e
     text.addOne(CodeLabel(endLabel))
     (text.toList, data.toList)
   }
+
+  override def checkCodePath(): CodePathCheckResult = CodePathChecker.children(this, statements)
 }

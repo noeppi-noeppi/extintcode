@@ -4,7 +4,8 @@ public enum IntCodeFlagEnum {
     
     ASCII(IntCodeFlags.ASCII()),
     DEBUG(IntCodeFlags.DEBUG()),
-    EXD(IntCodeFlags.EXD());
+    EXD(IntCodeFlags.EXD()),
+    NOP(IntCodeFlags.NOP());
 
     public final long flag;
 

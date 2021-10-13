@@ -9,9 +9,19 @@ trait PostProcessor {
 
 object PostProcessor {
   
+  // Contains entries multiple times because
+  // they need to be applied again after another
+  // processor was applied.
   private val PROCESSORS: List[PostProcessor] = List(
     TrivialPointers,
-    MovCollapse
+    TrivialMov,
+    MovCollapse,
+    TrivialMov,
+    CallJumpProcessor,
+    TailCallProcessor,
+    TrivialMov,
+    MovCollapse,
+    TrivialMov
   )
   
   def processors(enable: Boolean, frames: Boolean): List[PostProcessor] = {

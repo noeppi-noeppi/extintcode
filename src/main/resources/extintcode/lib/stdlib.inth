@@ -1,9 +1,13 @@
-$V 2.0
+$V 2.1
 ?div(..)+3
 ?mod(..)+122
 ?iint()+225
-?oint(.)+278
-?&istr()+441
-?ostr(&)+544
-?pow(..)+633
-obool(.)+693
+?parse(&)+278
+oint(.)+397
+?ointnnl(.)+413
+?&istr()+572
+?ostrnnl(&)+682
+?ostr(&)+769
+?pow(..)+858
+?obool(.)+918
+olist(&)+935

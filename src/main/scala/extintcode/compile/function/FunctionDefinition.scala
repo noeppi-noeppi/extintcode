@@ -1,7 +1,7 @@
 package extintcode.compile.function
 
 import extintcode.asm._
-import extintcode.compile.{CompilerRuntime, ImportTable, LangStatement}
+import extintcode.compile.{CodePathChecker, CompilerRuntime, ImportTable, LangStatement}
 import extintcode.util.{FunctionEntry, IntCodeRuntime}
 
 import scala.collection.mutable.ListBuffer
@@ -32,8 +32,7 @@ class FunctionDefinition(val name: String, val pointerReturn: Boolean, params: L
       text.addAll(c)
       data.addAll(d)
     }
-    text.addOne(StmtMov(Direct(0, null), SpecialValue(IntCodeRuntime.Names.RETURN)))
-    text.addOne(StmtJmp(backjump.location))
+    CodePathChecker.toplevel(entry, statements)
     text.addAll(runtime.endStackSection())
     (text.toList, data.toList)
   }

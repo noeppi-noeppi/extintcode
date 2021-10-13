@@ -4,7 +4,7 @@ import extintcode.asm.{AssemblyData, AssemblyText, Direct, ValType}
 
 trait LangExpression {
   
-  def generate(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData])
+  protected def generate(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData])
   final def code(imports: ImportTable, runtime: CompilerRuntime): (List[AssemblyText], List[AssemblyData]) = {
     val const = constantExpression(runtime)
     const.map(_ => (Nil, Nil)).getOrElse(generate(imports, runtime))

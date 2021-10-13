@@ -1,7 +1,7 @@
 package extintcode.compile
 
 import extintcode.compile.array.{ArrayAccess, ArrayBySize, ArrayUpdate}
-import extintcode.compile.control.{CodeBlock, ControlFor, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
+import extintcode.compile.control.{CodeBlock, ControlFor, ControlForeach, ControlIf, ControlJumpStatement, ControlJumpType, ControlWhile}
 import extintcode.compile.function.{FunctionCallExpression, FunctionCallStatement, FunctionDefinition, ReturnStatement}
 import extintcode.compile.literal.{LiteralArray, LiteralBool, LiteralChar, LiteralInt, LiteralNull, LiteralString, LiteralVoid}
 import extintcode.compile.meta.{ImportStatement, TypeCast}
@@ -32,8 +32,8 @@ object ProgramParser extends ExtendedParsers {
   def lang: Parser[Either[LangStatement, FunctionDefinition]] = (statement ^^ (x => Left(x))) | (function_definition ^^ (x => Right(x)))
   
   def statement: Parser[LangStatement] = (raw_statement <~ ";") | control
-  def raw_statement: Parser[LangStatement] = name_import | implicit_import | function_statement | return_statement | control_break | control_continue | control_next | variable_declaration | array_paren_update | array_variable_update | variable_update | assign_add | assign_sub | assign_mul | assign_div
-  def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_for | control_block
+  def raw_statement: Parser[LangStatement] = name_import | implicit_import | function_statement | return_statement_any | control_break | control_continue | control_next | variable_declaration | array_paren_update | array_variable_update | variable_update | assign_add | assign_sub | assign_mul | assign_div
+  def control: Parser[LangStatement] = control_if_else | control_if | control_while | control_foreach | control_for | control_block
   
   def expression: Parser[LangExpression] = op1sep(raw_expression, Operators.OPS)
   def raw_expression: Parser[LangExpression] = ternary | raw_expression_nt
@@ -77,7 +77,9 @@ object ProgramParser extends ExtendedParsers {
   def function_expression: Parser[LangExpression] = fqn ~ "(" ~ repsep(expression, ",") <~ ")" ^^ { case name ~ _ ~ args => new FunctionCallExpression(name._1, name._2, args) }
   def function_param: Parser[(String, Boolean)] = opt("&") ~ identifier ^^ { case mode ~ name => (name, mode.isDefined) }
   def function_definition: Parser[FunctionDefinition] = "def" ~> opt("&") ~ identifier ~ "(" ~ repsep(function_param, ",") ~ ")" ~ "{" ~ rep(statement) <~ "}" ^^ { case mode ~ name ~ _ ~ params ~ _ ~ _ ~ content => new FunctionDefinition(name, mode.isDefined, params, content) }
+  def return_statement_any: Parser[LangStatement] = return_statement | return_statement_void | failure("Return statement expected.")
   def return_statement: Parser[LangStatement] = "return" ~> expression ^^ (x => new ReturnStatement(x))
+  def return_statement_void: Parser[LangStatement] = "return" ^^ (x => new ReturnStatement(LiteralVoid))
 
   def array_by_size: Parser[LangExpression] = "array" ~> "[" ~> expression <~ "]" ^^ (x => new ArrayBySize(x))
   def array_variable_access: Parser[LangExpression] = identifier ~ "[" ~ expression <~ "]" ^^ { case array ~ _ ~ idx => new ArrayAccess(new VariableAccess(array), idx) }
@@ -87,8 +89,9 @@ object ProgramParser extends ExtendedParsers {
   
   def control_if: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~  _ ~ ifTrue => new ControlIf(condition, List(ifTrue), Nil) }
   def control_if_else: Parser[LangStatement] = "if" ~> "(" ~> expression ~ ")" ~ statement ~ "else" ~ statement ^^ { case condition ~ _ ~ ifTrue ~ _ ~ ifFalse => new ControlIf(condition, List(ifTrue), List(ifFalse)) }
-  def control_while: Parser[LangStatement] = "while" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~ _  ~ statements => new ControlWhile(condition, List(statements)) }
-  def control_for: Parser[LangStatement] = "for" ~> "(" ~> opt(raw_statement) ~ ";" ~ expression ~ ";" ~ opt(raw_statement) ~ ")" ~ statement ^^ { case init ~ _ ~ condition ~ _ ~ last ~ _  ~ statements => new ControlFor(init, condition, last, List(statements)) }
+  def control_while: Parser[LangStatement] = "while" ~> "(" ~> expression ~ ")" ~ statement ^^ { case condition ~ _ ~ statements => new ControlWhile(condition, List(statements)) }
+  def control_for: Parser[LangStatement] = "for" ~> "(" ~> opt(raw_statement) ~ ";" ~ expression ~ ";" ~ opt(raw_statement) ~ ")" ~ statement ^^ { case init ~ _ ~ condition ~ _ ~ last ~ _ ~ statements => new ControlFor(init, condition, last, List(statements)) }
+  def control_foreach: Parser[LangStatement] = "for" ~> "(" ~> opt("&") ~ identifier ~ opt("@" ~> identifier) ~ ":" ~ expression ~ ")" ~ statement ^^ { case varType ~ varName ~ indexVarName ~ _ ~ array ~ _ ~ statements => new ControlForeach(varName, varType.isDefined, indexVarName, array, List(statements)) }
   def control_block: Parser[LangStatement] = "{" ~> rep(statement) <~ "}" ^^ (x => new CodeBlock(x))
   def control_break: Parser[LangStatement] = "break" ^^ (_ => new ControlJumpStatement(ControlJumpType.BREAK))
   def control_continue: Parser[LangStatement] = "continue" ^^ (_ => new ControlJumpStatement(ControlJumpType.CONTINUE))

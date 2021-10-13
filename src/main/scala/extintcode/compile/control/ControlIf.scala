@@ -1,7 +1,7 @@
 package extintcode.compile.control
 
 import extintcode.asm._
-import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression, LangStatement}
+import extintcode.compile.{CodePathCheckResult, CodePathChecker, CompilerRuntime, ImportTable, LangExpression, LangStatement}
 
 import scala.collection.mutable.ListBuffer
 
@@ -42,4 +42,9 @@ class ControlIf(condition: LangExpression, ifTrue: List[LangStatement], ifFalse:
     text.addOne(CodeLabel(endLabel))
     (text.toList, data.toList)
   }
+
+  override def checkCodePath(): CodePathCheckResult = CodePathChecker.and(
+    CodePathChecker.children("ControlIf", this.ifTrue),
+    CodePathChecker.children("ControlElse", this.ifFalse)
+  )
 }

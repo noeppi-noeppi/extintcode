@@ -1,6 +1,6 @@
 package extintcode.compile.array
 
-import extintcode.asm.{AssemblyData, AssemblyText, Direct, SpecialValue, StmtAdd, StmtStore}
+import extintcode.asm._
 import extintcode.compile.{CompilerRuntime, ImportTable, LangExpression, LangStatement}
 import extintcode.util.IntCodeRuntime
 

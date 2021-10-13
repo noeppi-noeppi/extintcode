@@ -17,6 +17,7 @@ After that, a 64-bit unsigned integer follows, that specifies the flags. A flag 
 | 0 | ASCII | The vm will run in ASCII mode. See below. |
 | 1 | DEBUG | The vm will output debug information. This is an optional flag and may be ignored. |
 | 2 | EXD | (Exit Dump) whenever a `99` instruction is executed instead of terminating the program normally, the vm will crash and provide a memory dump. This is an optional flag and may be ignored. |
+| 3 | NOP | (No-op) Instead of failing on opcode `0` interpret it as a no operation opcode that takes 0 arguments. |
 
 ### ASCII Mode
 

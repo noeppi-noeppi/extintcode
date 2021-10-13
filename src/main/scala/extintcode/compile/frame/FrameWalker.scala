@@ -6,7 +6,12 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
-abstract class FrameWalker(val text: List[AssemblyText]) {
+// Careful with peekInExpressions. It will peek into expressions but don't give a sign that it did.
+// expression() will still be false. Just like if there has not been an expression at all
+// Should be false in most cases.
+abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: Boolean) {
+  
+  def this(text: List[AssemblyText]) = this(text, peekInExpressions = false)
   
   private var idx = 0
   
@@ -14,7 +19,11 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
     new FrameEntry(TopLevelFrame)
   )
   
+  // For each peeked statement.
+  private val currentStmtFrames: ListBuffer[ListBuffer[StmtFrame]] = ListBuffer()
+  
   private var peeking = false
+  private var totalPeeked = 0
   
   // Compiler does not use nested stack or expression sections
   // but frames should allow this
@@ -27,24 +36,27 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
     while (idx < text.size) {
       text(idx) match {
         case frame: Frame =>
-          processFrame(frame, canModifyStack = true)
+          processFrame(frame, canModifyStack = true, currentPeekedIdx = 0)
           builder.addOne(frame)
           idx += 1
         case oldStmt =>
-          val newStmt = process(oldStmt)
-          builder.addOne(newStmt)
+          val newStmts = process(oldStmt)
+          builder.addAll(newStmts)
           endPeek()
           idx += 1
+          currentStmtFrames.clear()
+          currentStmtFrames.addOne(ListBuffer())
       }
     }
     endWalk()
     builder.toList
   }
   
-  private def processFrame(frame: Frame, canModifyStack: Boolean): Unit = frame match {
+  private def processFrame(frame: Frame, canModifyStack: Boolean, currentPeekedIdx: Int): Unit = frame match {
     case TopLevelFrame => throw new IllegalStateException("Internal compiler error: Invalid frames: TopLevel Frame: " + idx)
     case f: StackFrame if canModifyStack => stackSections += 1; frameStack.push(new FrameEntry(f))
     case f: ExpressionFrame if canModifyStack => expressionSections += 1; frameStack.push(new FrameEntry(f))
+    case f: ExpressionFrame if peekInExpressions => // Do nothing.
     case f: StartFrame if canModifyStack => frameStack.push(new FrameEntry(f))
     case EndFrame if canModifyStack && frameStack.size <= 1 => throw new IllegalStateException("Internal compiler error: Invalid frames: Closing unopened start frame: " + idx)
     case EndFrame if canModifyStack && frameStack.head.frame.isInstanceOf[StackFrame] => stackSections -= 1; frameStack.pop()
@@ -52,7 +64,7 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
     case EndFrame if canModifyStack=> frameStack.pop()
     case f: GlobalFrame => frameStack.head.addGlobal(f)
     case f: VariableFrame => frameStack.head.addVariable(f)
-    case _: CallFrame =>
+    case f: StmtFrame => currentStmtFrames(currentPeekedIdx).addOne(f)
     case f => println("Warning: Processing unknown frame: " + f)
   }
   
@@ -65,13 +77,13 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
   }
   
   private def canPeek(stmt: AssemblyText): Boolean = stmt match {
+    case _: ExpressionFrame if peekInExpressions => true
     case _: StartFrame => false
     case EndFrame => false
     case _ => true
   }
   
-  
-  def process(stmt: AssemblyText): AssemblyText
+  def process(stmt: AssemblyText): Seq[AssemblyText]
   
   def peek(): Option[AssemblyText] = peek(1)
   def peek(n: Int): Option[AssemblyText] = peek(n, labels = true)
@@ -85,11 +97,20 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
         peeking = true
         frameStack.push(new FrameEntry(TopLevelFrame))
       }
+      while (currentStmtFrames.size <= peekedIdx) {
+        currentStmtFrames.addOne(ListBuffer())
+      }
       text(idx + peekedIdx) match {
-        case frame: Frame => processFrame(frame, canModifyStack = false); peekedIdx += 1
-        case _: AssemblerLabel if !labels => peekedIdx += 1
+        case frame: Frame if peekedIdx > totalPeeked =>
+          processFrame(frame, canModifyStack = false, current)
+          peekedIdx += 1
+        case _: Frame =>
+          peekedIdx += 1
+        case _: AssemblerLabel if !labels =>
+          peekedIdx += 1
         case stmt =>
-          if (current >= n) { 
+          if (current >= n) {
+            totalPeeked = peekedIdx
             return Some(stmt)
           } else {
             current += 1
@@ -97,6 +118,7 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
           }
       }
     }
+    totalPeeked = peekedIdx
     None
   }
   
@@ -108,6 +130,7 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
       // into start frames
       frameStack.pop()
     }
+    totalPeeked = 0
   }
   
   def consume(): Unit = consume(1)
@@ -163,7 +186,12 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
   
   def find(framesUp: Int, skip: Int, predicate: AssemblyText => Boolean): Boolean = {
     var endFramesLeft = framesUp
-    var current = idx + 1 + skip
+    var current = idx + 1
+    var skipsLeft = skip
+    while (skipsLeft > 0) {
+      current += 1
+      if (current >= text.size || !text(current).isInstanceOf[Frame]) skipsLeft -= 1
+    }
     while (endFramesLeft >= 0 && current < text.size) {
       text(current) match {
         case EndFrame => endFramesLeft -= 1
@@ -182,6 +210,12 @@ abstract class FrameWalker(val text: List[AssemblyText]) {
   def store(address: ValType): Option[Frame] = variable(address).orElse(global(address))
   def variable(address: ValType): Option[VariableFrame] = frameStack.flatMap(e => e.variables.find(f => f.address == address)).headOption
   def global(address: ValType): Option[GlobalFrame] = frameStack.flatMap(e => e.globals.find(f => f.address == address)).headOption
+  def frames(): List[StmtFrame] = frames(0)
+  def frames(peekIdx: Int): List[StmtFrame] = {
+    if (peekIdx < 0) throw new IllegalArgumentException("PostProcessor error: Can't retrieve past statement frames")
+    if (peekIdx >= currentStmtFrames.size) throw new IllegalArgumentException("PostProcessor error: Can't retrieve statement frames: Not peeked far enough: " + peekIdx)
+    currentStmtFrames(peekIdx).toList
+  }
   
   private class FrameEntry(val frame: StartFrame) {
     

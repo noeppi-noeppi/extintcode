@@ -10,6 +10,10 @@ abstract class Frame extends AnyRef with AssemblyText with AssemblyData {
   override final def dataStr(): String = "; " + comment()
 }
 
+// Marker for FrameWalker that a frame is bound to the statement immediately
+// following it.
+abstract class StmtFrame extends Frame
+
 // Frame needs a matching EndFrame
 // `at` is the start position of the frame relative to the current stack
 // Increases current stack by that value

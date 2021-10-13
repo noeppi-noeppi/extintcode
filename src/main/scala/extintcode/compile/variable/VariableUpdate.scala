@@ -15,9 +15,9 @@ class VariableUpdate(name: String, value: LangExpression) extends LangStatement 
     text.addAll(runtime.startExpressionSection())
     val (t, data) = value.code(imports, runtime)
     text.addAll(t)
-    text.addAll(runtime.endExpressionSection())
     runtime.checkType("variable update", variable.pointer, value.pointer())
     text.addOne(StmtMov(value.value(runtime), variable.location))
+    text.addAll(runtime.endExpressionSection())
     (text.toList, data)
   }
 }

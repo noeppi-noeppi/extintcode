@@ -11,6 +11,7 @@ class IntCodeInterpreter(val memory: Memory, val flags: Long) {
   val ascii: Boolean = (flags & IntCodeFlags.ASCII) != 0
   val debug: Boolean = (flags & IntCodeFlags.DEBUG) != 0
   val exd: Boolean = (flags & IntCodeFlags.EXD) != 0
+  val nop: Boolean = (flags & IntCodeFlags.NOP) != 0
   
   private var instruction: Int = 0
   private var relative: Int = 0
@@ -43,6 +44,7 @@ class IntCodeInterpreter(val memory: Memory, val flags: Long) {
     if (opcode < 0) segv(instruction, "INSTRUCTION IS NEGATIVE")
     debug("OPCODE ", opcode)
     opcode % 100 match {
+      case 0 if nop => 0
       case 0 => segv(instruction, "NULL INSTRUCTION")
       case 1 => write(opcode, 3, read(opcode, 1) + read(opcode, 2)); 3
       case 2 => write(opcode, 3, read(opcode, 1) * read(opcode, 2)); 3

@@ -112,7 +112,7 @@ object IntCodeCompiler {
     
     if (postProcess) println("Post processing generated Assembler")
     val processors = PostProcessor.processors(postProcess, frames)
-    val (processedText, processedData) = processors.foldRight((text.toList, data.toList))((processor, e) => processor.process(e._1, e._2))
+    val (processedText, processedData) = processors.foldLeft((text.toList, data.toList))((e, processor) => processor.process(e._1, e._2))
     
     println("Writing IntCode Assembler")
     writer.write("$V " + IntCode.MAJOR + "." + version + "\n")
