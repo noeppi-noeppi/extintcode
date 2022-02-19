@@ -27,9 +27,7 @@ object MovCollapse extends PostProcessor {
         }
       case StmtLoad(from1, to1 @ MemoryStack(_, null)) if expression() =>
         peek() match {
-          case Some(StmtMov(from2, to2)) => println("" + to1.string() + " | " + from2.string() + " @ " + findMemory(1, to1)); List(stmt); 
           case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
-            println("MATCH")
             consume()
             List(StmtLoad(from1, to2))
           case _ => List(stmt)
