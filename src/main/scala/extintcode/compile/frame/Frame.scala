@@ -20,7 +20,7 @@ abstract class StmtFrame extends Frame
 abstract class StartFrame(val at: Int) extends Frame
 
 case object TopLevelFrame extends StartFrame(0) {
-  override def comment(): String = "; toplevel"
+  override def comment(): String = "toplevel"
 }
 
 case object EndFrame extends Frame {

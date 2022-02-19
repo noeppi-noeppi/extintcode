@@ -35,6 +35,8 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
   
   def walk(): List[AssemblyText] = {
     val builder = ListBuffer[AssemblyText]()
+    currentStmtFrames.clear()
+    currentStmtFrames.addOne(ListBuffer())
     // Idx may be changed during the loop
     while (idx < text.size) {
       text(idx) match {
