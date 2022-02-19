@@ -1,5 +1,5 @@
 package extintcode.compile.postprocess
-import extintcode.asm.{AssemblyData, AssemblyText, MemoryStack, StmtAdd, StmtEq, StmtInp, StmtLt, StmtMov, StmtMul}
+import extintcode.asm.{AssemblyData, AssemblyText, MemoryStack, StmtAdd, StmtEq, StmtInp, StmtLoad, StmtLt, StmtMov, StmtMul, StmtStore}
 import extintcode.compile.frame.FrameWalker
 
 // Collapse two mov instructions into one if the first one
@@ -20,6 +20,18 @@ object MovCollapse extends PostProcessor {
           case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
             consume()
             List(StmtMov(from1, to2))
+          case Some(StmtStore(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            consume()
+            List(StmtStore(from1, to2))
+          case _ => List(stmt)
+        }
+      case StmtLoad(from1, to1 @ MemoryStack(_, null)) if expression() =>
+        peek() match {
+          case Some(StmtMov(from2, to2)) => println("" + to1.string() + " | " + from2.string() + " @ " + findMemory(1, to1)); List(stmt); 
+          case Some(StmtMov(from2, to2)) if to1 == from2 && !findMemory(1, to1) =>
+            println("MATCH")
+            consume()
+            List(StmtLoad(from1, to2))
           case _ => List(stmt)
         }
       case StmtAdd(op1, op2, to1 @ MemoryStack(_, null)) if expression() =>
