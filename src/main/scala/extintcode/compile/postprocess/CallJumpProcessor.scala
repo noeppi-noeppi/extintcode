@@ -1,5 +1,5 @@
 package extintcode.compile.postprocess
-import extintcode.asm.{AssemblyData, AssemblyText, SpecialValue, StmtCall, StmtJmp, StmtMov}
+import extintcode.asm.{AssemblyData, AssemblyText, Direct, DirectLabel, SpecialValue, StmtCall, StmtJmp, StmtMov, ValType}
 import extintcode.compile.frame.FrameWalker
 import extintcode.util.IntCodeRuntime
 
@@ -7,16 +7,18 @@ import extintcode.util.IntCodeRuntime
 object CallJumpProcessor extends PostProcessor {
   
   override def process(text: List[AssemblyText], data: List[AssemblyData]): (List[AssemblyText], List[AssemblyData]) = {
-    val walker = new Walker(text)
-    (walker.walk(), data)
+    val walker = new Walker(text, constantTarget = false)
+    val constWalker = new Walker(walker.walk(), constantTarget = true)
+    (constWalker.walk(), data)
   }
-  
-  private class Walker(text: List[AssemblyText]) extends FrameWalker(text) {
+
+  // For constant jump targets we can peek through end frames
+  private class Walker(text: List[AssemblyText], constantTarget: Boolean) extends FrameWalker(text, peekThroughEndFrames = constantTarget) {
     
     override def process(stmt: AssemblyText): Seq[AssemblyText] = stmt match {
       case StmtCall(memory) =>
         peek() match {
-          case Some(StmtJmp(target)) =>
+          case Some(StmtJmp(target)) if !constantTarget || checkConst(target) =>
             consume()
             // Move target address into backjump immediately
             // and then jump to call target instead of using call
@@ -28,6 +30,13 @@ object CallJumpProcessor extends PostProcessor {
           case _ => List(stmt)
         }
       case stmt => List(stmt)
+    }
+    
+    private def checkConst(target: ValType): Boolean = target match {
+      case Direct(_, null) => true
+      case Direct(_, "") => true
+      case DirectLabel(_) => true
+      case _ => false
     }
   }
 }

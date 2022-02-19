@@ -131,6 +131,23 @@ object IntCodeAssembler {
     case R_PARAM(num) => throw new InvalidFileException("Parameter " + num + " can not be accessed: Maximal param number is " + maxFunc)
   }
   
+  def parseSpecialAddress(value: String, maxFunc: Int): ValType = value.trim match {
+    case IntCodeRuntime.Names.NEXTDYN => Direct(IntCodeRuntime.NEXTDYN, null)
+    case IntCodeRuntime.Names.CALLSTACK => Direct(IntCodeRuntime.CALLSTACK, null)
+    case IntCodeRuntime.Names.BACKJUMP => Direct(IntCodeRuntime.BACKJUMP, null)
+    case IntCodeRuntime.Names.RETURN => Direct(IntCodeRuntime.RETURN, null)
+    case IntCodeRuntime.Names.GLOBAL1 => Direct(IntCodeRuntime.GLOBAL1, null)
+    case IntCodeRuntime.Names.GLOBAL2 => Direct(IntCodeRuntime.GLOBAL2, null)
+    case IntCodeRuntime.Names.GLOBAL3 => Direct(IntCodeRuntime.GLOBAL3, null)
+    case IntCodeRuntime.Names.GLOBAL4 => Direct(IntCodeRuntime.GLOBAL4, null)
+    case IntCodeRuntime.Names.GLOBAL5 => Direct(IntCodeRuntime.GLOBAL5, null)
+    case IntCodeRuntime.Names.GLOBAL6 => Direct(IntCodeRuntime.GLOBAL6, null)
+    case IntCodeRuntime.Names.GLOBAL7 => Direct(IntCodeRuntime.GLOBAL7, null)
+    case IntCodeRuntime.Names.GLOBAL8 => Direct(IntCodeRuntime.GLOBAL8, null)
+    case R_PARAM(num) if num.toInt > 0 && num.toInt <= maxFunc => Direct(IntCodeRuntime.PARAM_BASE + num.toInt - 1, null)
+    case R_PARAM(num) => throw new InvalidFileException("Parameter " + num + " can not be accessed: Maximal param number is " + maxFunc)
+  }
+  
   def opcode(op: Int, params: ValType*): (Long, String) = {
     var x: Long = op
     for (i <- 0 until params.size) {

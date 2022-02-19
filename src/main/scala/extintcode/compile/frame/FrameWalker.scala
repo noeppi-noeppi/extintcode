@@ -9,9 +9,9 @@ import scala.reflect.ClassTag
 // Careful with peekInExpressions. It will peek into expressions but don't give a sign that it did.
 // expression() will still be false. Just like if there has not been an expression at all
 // Should be false in most cases.
-abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: Boolean) {
-  
-  def this(text: List[AssemblyText]) = this(text, peekInExpressions = false)
+// Same goes for peekThroughEndFrames. Also end frames won't be consumed by the consume function and
+// will remain in place AFTER the newly generated statements.
+abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: Boolean = false, val peekThroughEndFrames: Boolean = false) {
   
   private var idx = 0
   
@@ -24,6 +24,9 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
   
   private var peeking = false
   private var totalPeeked = 0
+  
+  // Start and end frames can't be consumed
+  private var consumedNestableFrames: ListBuffer[Frame] = ListBuffer()
   
   // Compiler does not use nested stack or expression sections
   // but frames should allow this
@@ -42,6 +45,9 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
         case oldStmt =>
           val newStmts = process(oldStmt)
           builder.addAll(newStmts)
+          consumedNestableFrames.foreach(frame => processFrame(frame, canModifyStack = true, currentPeekedIdx = 0))
+          builder.addAll(consumedNestableFrames)
+          consumedNestableFrames.clear()
           endPeek()
           idx += 1
           currentStmtFrames.clear()
@@ -56,12 +62,13 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
     case TopLevelFrame => throw new IllegalStateException("Internal compiler error: Invalid frames: TopLevel Frame: " + idx)
     case f: StackFrame if canModifyStack => stackSections += 1; frameStack.push(new FrameEntry(f))
     case f: ExpressionFrame if canModifyStack => expressionSections += 1; frameStack.push(new FrameEntry(f))
-    case f: ExpressionFrame if peekInExpressions => // Do nothing.
+    case _: ExpressionFrame if peekInExpressions => // Do nothing.
     case f: StartFrame if canModifyStack => frameStack.push(new FrameEntry(f))
     case EndFrame if canModifyStack && frameStack.size <= 1 => throw new IllegalStateException("Internal compiler error: Invalid frames: Closing unopened start frame: " + idx)
     case EndFrame if canModifyStack && frameStack.head.frame.isInstanceOf[StackFrame] => stackSections -= 1; frameStack.pop()
     case EndFrame if canModifyStack && frameStack.head.frame.isInstanceOf[ExpressionFrame] => expressionSections -= 1; frameStack.pop()
-    case EndFrame if canModifyStack=> frameStack.pop()
+    case EndFrame if canModifyStack => frameStack.pop()
+    case EndFrame if peekThroughEndFrames => // Do nothing.
     case f: GlobalFrame => frameStack.head.addGlobal(f)
     case f: VariableFrame => frameStack.head.addVariable(f)
     case f: StmtFrame => currentStmtFrames(currentPeekedIdx).addOne(f)
@@ -77,9 +84,9 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
   }
   
   private def canPeek(stmt: AssemblyText): Boolean = stmt match {
-    case _: ExpressionFrame if peekInExpressions => true
+    case _: ExpressionFrame => peekInExpressions
     case _: StartFrame => false
-    case EndFrame => false
+    case EndFrame => peekThroughEndFrames
     case _ => true
   }
   
@@ -140,6 +147,8 @@ abstract class FrameWalker(val text: List[AssemblyText], val peekInExpressions: 
     while (dropsLeft > 0) {
       if (idx + 1 >= text.size || !canPeek(text(idx + 1))) throw new IllegalStateException("Can't drop " + n + " statements: End of frame reached: " + idx)
       text(idx + 1) match {
+        case f: StartFrame => consumedNestableFrames.addOne(f); idx += 1
+        case EndFrame => consumedNestableFrames.addOne(EndFrame); idx += 1
         case _: Frame => idx += 1
         case _: AssemblerLabel if !labels => idx += 1
         case _ => idx += 1; dropsLeft -= 1

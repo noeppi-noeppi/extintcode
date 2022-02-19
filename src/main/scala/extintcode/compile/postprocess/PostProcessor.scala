@@ -15,12 +15,14 @@ object PostProcessor {
   private val PROCESSORS: List[PostProcessor] = List(
     TrivialPointers,
     TrivialMov,
+    SimpleJumps,
     MovCollapse,
     TrivialMov,
     CallJumpProcessor,
     TailCallProcessor,
     TrivialMov,
     MovCollapse,
+    SimpleJumps,
     TrivialMov
   )
   
