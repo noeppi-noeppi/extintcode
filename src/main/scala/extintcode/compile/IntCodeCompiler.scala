@@ -79,7 +79,7 @@ object IntCodeCompiler {
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
     if (statements.isEmpty && local.isEmpty) {
-      throw new IllegalStateException("Nothing to comile")
+      throw new IllegalStateException("Nothing to compile")
     }
     
     runtime.pushInitialScope()
