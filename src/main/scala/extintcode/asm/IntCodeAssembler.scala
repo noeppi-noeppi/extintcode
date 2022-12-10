@@ -53,6 +53,7 @@ object IntCodeAssembler {
     }
     val text = textLines.toList.flatMap(AssemblyParser.parseTextLine)
     val data = dataLines.toList.flatMap(AssemblyParser.parseDataLine)
+    val needsData = data.nonEmpty
     val labelMap = mutable.Map[String, Int]()
     val dataMap = mutable.Map[String, Int]()
     val fieldMap = mutable.Map[FieldEntry, Long]()
@@ -69,15 +70,17 @@ object IntCodeAssembler {
         x.function.foreach(elem => maxFunc = Math.max(elem.args, maxFunc))
         x.field.foreach(label => throw new InvalidFileException("Field labels are not allowed in text section: " + label))
     }
-    inst += 3 // Jump over the data segment
-    data.foreach {
-      case Left(x) =>
-        dataMap(x.name) = inst
-        inst += x.size
-      case Right(x) =>
-        x.name.foreach(label => throw new InvalidFileException("Named labels are not allowed in data section: " + label))
-        x.function.foreach(label => throw new InvalidFileException("Function labels are not allowed in data section: " + label))
-        x.field.foreach(fieldMap.put(_, inst))
+    if (needsData) {
+      inst += 3 // Jump over the data segment
+      data.foreach {
+        case Left(x) =>
+          dataMap(x.name) = inst
+          inst += x.size
+        case Right(x) =>
+          x.name.foreach(label => throw new InvalidFileException("Named labels are not allowed in data section: " + label))
+          x.function.foreach(label => throw new InvalidFileException("Function labels are not allowed in data section: " + label))
+          x.field.foreach(fieldMap.put(_, inst))
+      }
     }
     val labels = labelMap.toMap
     val dataEntries = dataMap.toMap
@@ -92,15 +95,17 @@ object IntCodeAssembler {
         inst += x.size
       case Right(_) =>
     }
-    ints.addAll(Seq(
-      (1106, null), (0, null), (dataSegmentEnd, "")
-    ))
-    data.foreach {
-      case Left(x) =>
-        val code = x.code(dataEntries)
-        if (code.size != x.size) throw new IllegalStateException("Internal Assembler error: Data Entry wrote invalid amount of ints: Expected: " + x.size + ", Written: " + code.size)
-        ints.addAll(code)
-      case Right(_) =>
+    if (needsData) {
+      ints.addAll(Seq(
+        (1106, null), (0, null), (dataSegmentEnd, "")
+      ))
+      data.foreach {
+        case Left(x) =>
+          val code = x.code(dataEntries)
+          if (code.size != x.size) throw new IllegalStateException("Internal Assembler error: Data Entry wrote invalid amount of ints: Expected: " + x.size + ", Written: " + code.size)
+          ints.addAll(code)
+        case Right(_) =>
+      }
     }
     headerOut.foreach(writer => {
       writer.write("$V " + IntCode.MAJOR + "." + version + "\n")

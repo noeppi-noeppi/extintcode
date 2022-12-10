@@ -1,6 +1,6 @@
 # Details
 
-This folder contains some files that show how exactly *extintcode* works.
+This folder contains some files that show how *extintcode* works in more detail.
 
 Details about IntCode itself can be found [here](https://esolangs.org/wiki/Intcode).
 

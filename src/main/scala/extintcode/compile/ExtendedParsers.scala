@@ -15,7 +15,7 @@ class ExtendedParsers extends CommonParsers {
       .map(op => op.name ^^ (_ => op))
       .reduce((op1, op2) => op1 | op2)
     
-    // Luckily this works as the aargument in `|` is by name
+    // Luckily this works as the argument in `|` is by name
     var parser: Parser[T] = null
     
     val parenExpression = expression | ("(" ~> parser <~ ")")

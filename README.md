@@ -2,13 +2,13 @@
 
 Tools to deal with IntCode
 
-*extintcode stands for extended IntCode which was just me adding some more opcodes to IntCode. However, when I tried to create a compiler for it, I failed. Then I realised hat everything, my new opcodes could do can also be done in normal IntCode. So I created a new, better compiler that allows you to write IntCode program bigger, better, and less painful to read. (This is also the reason why the major version is 2 and not 1...)*
+*extintcode stands for extended IntCode which was just me adding some more opcodes to IntCode. However, when I tried to create a compiler for it, I failed. Then I realised that everything my new opcodes could do can also be done in normal IntCode. So I created a new, better compiler that allows you to write IntCode program bigger, better, and less painful to read. (This is also the reason why the major version is 2 and not 1...)*
 
 For more details see [here](details/README.md).
 
 ### Running on own IntCode computer
 
-**extintcode program are meant to run in ASCII mode**. More specifically they're meant to operate on unicode code points. As long as only ASCII characters are used, normal ASCII mode works just well.
+**extintcode programs are meant to run in ASCII mode**. More specifically, they're meant to operate on unicode code points. As long as only ASCII characters are used, regular ASCII mode works just well.
 To get a regular IntCode file, add the option `-fplain` to `intcode link`. If you don't do so, you'll get binary IntCode.
 
 ### Now back to the language
@@ -65,7 +65,7 @@ import stdlib.*;
 oint(iint()/iint());
 ```
 
-First you can see, that we can import everything from a module by using an asterisk. Second, you'll notice that the program fails to compile with the message `Division Operator requires implicit import of function stdlib.div which is not imported.`.
+First you can see that we can import everything from a module by using an asterisk. Second, you'll notice that the program fails to compile with the message `Division Operator requires implicit import of function stdlib.div which is not imported.`.
 
 As IntCode provides no way for division, there's a function defined in `stdlib.div` which divides two numbers. However, to use this as an operator, you need to add an implicit import:
 
@@ -84,7 +84,7 @@ import stdlib.oint;
 oint(2);
 ```
 
-In most cases you'll just have the following at the top of you file:
+In most cases, you'll just have the following at the top of your file:
 
 ```
 import builtin.*;
@@ -125,7 +125,7 @@ I'll go over this in detail:
 `let idx = 0;` initialises the direct variable `idx` to 0.
 
 `while (idx < *nums) {` A loop that runs as long as `idx` is smaller than the size of the array.
-The size of an array is retrieved by de-referencing the pointer: `*nums`
+The size of an array is retrieved by dereferencing the pointer: `*nums`
 
 `nums[idx] = iint();` read an integer and store it at the position `idx` of the array. Indices start at 0.
 

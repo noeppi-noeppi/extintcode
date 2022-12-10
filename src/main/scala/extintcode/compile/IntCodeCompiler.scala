@@ -78,7 +78,7 @@ object IntCodeCompiler {
     ), local)
     val text = ListBuffer[AssemblyText]()
     val data = ListBuffer[AssemblyData]()
-    if (statements.isEmpty && local.isEmpty) {
+    if (statements.forall(_.isInstanceOf[ImportStatement]) && local.isEmpty) {
       throw new IllegalStateException("Nothing to compile")
     }
     

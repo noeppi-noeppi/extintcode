@@ -12,7 +12,7 @@ Lines starting with a colon mark a label. A label may look like this:
 :label
 ```
 
-Label names must match the same pattern as module names. However, they may aso be named `builtin` or `local`.  If a label also marks a function entry, or a field it may look like this:
+Label names must match the same pattern as module names. However, they may aso be named `builtin` or `local`.  If a label also marks a function entry, or a field, it may look like this:
 
 ```
 :label#signature
@@ -78,7 +78,7 @@ call ivalue                       Sets the header value BACKJUMP to the instruct
 raw int<,int>*                    Inserts these ints into the code as they are. They can still be relocated.
 ```
 
-Each line in the data section mus look like this:
+Each line in the data section must look like this:
 
 ```
 name(size)

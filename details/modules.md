@@ -12,7 +12,7 @@ Relocatable IntCode is described in [linkage](linkage.md). The IntCode Header is
 
 ### IntCode Header
 
-An IntCode Header starts with a [version specifier](misc.md). After that, function and field signatures ay follow.
+An IntCode Header starts with a [version specifier](misc.md). After that, function and field signatures may follow.
 
 A field signature looks like this:
 
@@ -31,4 +31,4 @@ A function signature looks like this:
 
 where `name` is the name of the function. The return of the function is either an empty string, which means the function returns a value in direct mode, or an ampersand (`&`) which means the function returns a value in pointer mode. `pure` is either a question mark or empty. A question mark means the function is pure, which means it does not use the stack. So a push and pop ist not required before/after the call.
 `params` is a series of dots (`.`) and ampersands (`&`), one for each parameter. A dot means the parameter is in direct mode, an `&` means it's in pointer mode.
-Each function must be uniquely defined by its name, and it's parameter count inside a module. Address is the memory address of that function relative to this module.
+Each function must be uniquely defined by its name, and its parameter count inside a module. Address is the memory address of that function relative to this module.
