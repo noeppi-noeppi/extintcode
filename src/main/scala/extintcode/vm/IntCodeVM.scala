@@ -12,9 +12,9 @@ object IntCodeVM {
   
   def run(args: String*): Unit = {
     val options = new OptionParser(false)
-    val specFormat = options.acceptsAll(List("f", "format").asJava, "The input format. Can be omitted for auto detection.").withRequiredArg().withValuesConvertedBy(Util.enum[IntCodeFormat])
-    val specEnable = options.acceptsAll(List("e", "enable").asJava, "Enable a flag. This overrides values read from the input file").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enum[IntCodeFlagEnum])
-    val specDisable = options.acceptsAll(List("d", "disable").asJava, "Disable a flag. This overrides values read from the input file").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enum[IntCodeFlagEnum])
+    val specFormat = options.acceptsAll(List("f", "format").asJava, "The input format. Can be omitted for auto detection.").withRequiredArg().withValuesConvertedBy(Util.enumArg[IntCodeFormat])
+    val specEnable = options.acceptsAll(List("e", "enable").asJava, "Enable a flag. This overrides values read from the input file").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enumArg[IntCodeFlagEnum])
+    val specDisable = options.acceptsAll(List("d", "disable").asJava, "Disable a flag. This overrides values read from the input file").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enumArg[IntCodeFlagEnum])
     val specFile = options.nonOptions("The input file to read.").withValuesConvertedBy(new PathConverter(PathProperties.FILE_EXISTING, PathProperties.READABLE))
     val set = options.parse(args: _*)
     if (!set.has(specFile) || set.valueOf(specFile) == null) {

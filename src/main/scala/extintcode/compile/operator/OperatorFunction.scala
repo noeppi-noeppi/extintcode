@@ -43,5 +43,5 @@ class OperatorMod(op1: LangExpression, op2: LangExpression) extends OperatorFunc
 class OperatorPow(op1: LangExpression, op2: LangExpression) extends OperatorFunction(
   imports => imports.getImplicit("stdlib", "pow", 2, "Power Operator"),
   op1, op2) {
-  override protected def constantExpression(l1: Long, l2: Long): Option[Long] = Some(Math.pow(l1, l2).toLong)
+  override protected def constantExpression(l1: Long, l2: Long): Option[Long] = Some(Math.pow(l1.toDouble, l2.toDouble).toLong)
 }

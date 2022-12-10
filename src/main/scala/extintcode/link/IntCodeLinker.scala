@@ -16,9 +16,9 @@ object IntCodeLinker {
   
   def run(args: String*): Unit = {
     val options = new OptionParser(false)
-    val specFormat = options.acceptsAll(List("f", "format").asJava, "The output format").withRequiredArg().withValuesConvertedBy(Util.enum[IntCodeFormat]).defaultsTo(IntCodeFormat.BINARY)
-    val specEnable = options.acceptsAll(List("e", "enable").asJava, "Enable a flag. This has no effect when output format is plain.").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enum[IntCodeFlagEnum])
-    val specDisable = options.acceptsAll(List("d", "disable").asJava, "Disable a flag. This has no effect when output format is plain.").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enum[IntCodeFlagEnum])
+    val specFormat = options.acceptsAll(List("f", "format").asJava, "The output format").withRequiredArg().withValuesConvertedBy(Util.enumArg[IntCodeFormat]).defaultsTo(IntCodeFormat.BINARY)
+    val specEnable = options.acceptsAll(List("e", "enable").asJava, "Enable a flag. This has no effect when output format is plain.").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enumArg[IntCodeFlagEnum])
+    val specDisable = options.acceptsAll(List("d", "disable").asJava, "Disable a flag. This has no effect when output format is plain.").withRequiredArg().withValuesSeparatedBy(',').withValuesConvertedBy(Util.enumArg[IntCodeFlagEnum])
     val specOutput = options.acceptsAll(List("o", "output").asJava, "The output file").withRequiredArg().withValuesConvertedBy(new PathConverter())
     val specStack = options.acceptsAll(List("s", "stack").asJava, "The size of the call stack to allocate").withRequiredArg().ofType(classOf[Integer]).defaultsTo(1000)
     val specLib = options.acceptsAll(List("l", "lib", "library").asJava, "Search paths for libraries.").withRequiredArg().withValuesSeparatedBy(File.pathSeparatorChar).withValuesConvertedBy(new PathConverter(PathProperties.DIRECTORY_EXISTING, PathProperties.READABLE))
