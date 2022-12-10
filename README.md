@@ -76,7 +76,7 @@ implicit stdlib.div;
 oint(iint()/iint());
 ```
 
-SO now you might be wondering: *Why did it compile the first example then?* This is because the compiler will resolve compile time constants whenever possible. So the first example is equivalent to:
+So now you might be wondering: *Why did it compile the first example then?* This is because the compiler will resolve compile time constants whenever possible. So the first example is equivalent to:
 
 ```
 $V 2.0
