@@ -6,7 +6,7 @@ plugins {
 
 configurations {
     shade
-    compile.extendsFrom shade
+    implementation.extendsFrom shade
 }
 
 repositories {
@@ -15,15 +15,13 @@ repositories {
 
 dependencies {
     shade 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    shade 'org.scala-lang:scala-library:2.13.8'
-    shade 'org.scala-lang.modules:scala-parser-combinators_2.13:2.1.1'
-    shade 'commons-io:commons-io:2.11.0'
-    shade 'org.apache.commons:commons-text:1.9'
+    shade 'org.scala-lang:scala-library:2.13.14'
+    shade 'org.scala-lang.modules:scala-parser-combinators_2.13:2.4.0'
+    shade 'commons-io:commons-io:2.16.1'
+    shade 'org.apache.commons:commons-text:1.12.0'
 }
 
-application {
-    mainClassName = 'extintcode.Main'
-}
+application.mainClass = 'extintcode.Main'
 
 jar {
     configurations.shade.each { dep -> from(project.zipTree(dep)) {
@@ -32,6 +30,6 @@ jar {
     } }
 
     manifest {
-        attributes 'Main-Class': application.mainClassName
+        attributes 'Main-Class': application.mainClass.get()
     }
 }
